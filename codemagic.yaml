@@ -314,6 +314,28 @@ workflows:
               --create
           done
 
+      - name: Show what the profiles actually grant
+        script: |
+          # Diagnostic. Xcode's "doesn't support the ... App Group" error says what the
+          # profile lacks but never what it has, which makes the portal side guesswork.
+          # This decodes each fetched profile and prints its real entitlements.
+          PROFILE_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
+          shopt -s nullglob
+          for p in "$PROFILE_DIR"/*.mobileprovision; do
+            security cms -D -i "$p" > /tmp/profile.plist 2>/dev/null || continue
+            echo "=================================================================="
+            /usr/libexec/PlistBuddy -c "Print :Name" /tmp/profile.plist 2>/dev/null
+            echo "  app id:     $(/usr/libexec/PlistBuddy -c 'Print :Entitlements:application-identifier' /tmp/profile.plist 2>/dev/null)"
+            echo "  app groups:"
+            /usr/libexec/PlistBuddy -c "Print :Entitlements:com.apple.security.application-groups" \
+              /tmp/profile.plist 2>/dev/null \
+              || echo "    NONE - the App Group is not assigned to this App ID on the portal"
+          done
+          echo "=================================================================="
+          echo "The entitlements files require:"
+          grep -A2 "application-groups" GiftKey/GiftKey.entitlements | grep string
+          grep -A2 "application-groups" GiftKeyKeyboard/GiftKeyKeyboard.entitlements | grep string
+
       - name: Add certificates to keychain
         script: |
           set -e
