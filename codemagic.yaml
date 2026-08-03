@@ -1,0 +1,161 @@
+# Codemagic CI for GiftKey.
+#
+# Purpose: build, sign and ship an iOS app without owning a Mac.
+#
+# Two workflows, meant to be used in this order:
+#
+#   1. compile-check   No signing, no upload, no Apple account needed. Builds for the
+#                      simulator purely to surface compile errors. Use this to grind
+#                      through the first round of build failures. Runs on every push.
+#
+#   2. ios-release     Signs, archives, and uploads to TestFlight. Triggered by pushing
+#                      a git tag like `v1.0.0`, so it never fires by accident.
+#
+# See CI.md for the one-time setup (App Store Connect API key, bundle IDs, App Group).
+
+definitions:
+  base_env: &base_env
+    xcode: latest
+    vars:
+      XCODE_PROJECT: "GiftKey.xcodeproj"
+      XCODE_SCHEME: "GiftKey"
+
+workflows:
+
+  # ---------------------------------------------------------------------------
+  # 1. Compile check - no signing, no Apple account required
+  # ---------------------------------------------------------------------------
+  compile-check:
+    name: GiftKey - compile check
+    instance_type: mac_mini_m2
+    max_build_duration: 30
+    environment:
+      <<: *base_env
+    triggering:
+      events:
+        - push
+        - pull_request
+    scripts:
+
+      - name: Toolchain versions
+        script: |
+          xcodebuild -version
+          swift --version
+
+      - name: Build app + keyboard extension for simulator
+        script: |
+          # Code signing is fully disabled: this workflow only answers the question
+          # "does it compile?". Entitlements and bundle IDs are irrelevant here, so the
+          # PLACEHOLDER values in the project do not need replacing yet.
+          xcodebuild \
+            -project "$XCODE_PROJECT" \
+            -scheme "$XCODE_SCHEME" \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            DEVELOPMENT_TEAM="" \
+            build 2>&1 | xcbeautify --renderer github-actions
+
+    artifacts:
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      email:
+        recipients:
+          # PLACEHOLDER: your address.
+          - matthew@ryderwear.com.au
+        notify:
+          success: false   # only shout when it breaks
+          failure: true
+
+  # ---------------------------------------------------------------------------
+  # 2. Signed release to TestFlight
+  # ---------------------------------------------------------------------------
+  ios-release:
+    name: GiftKey - TestFlight release
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+
+    # PLACEHOLDER: must match the integration name you create in
+    # Codemagic > Teams > Integrations > App Store Connect.
+    integrations:
+      app_store_connect: GiftKey ASC Key
+
+    environment:
+      <<: *base_env
+      vars:
+        # PLACEHOLDER: must match AppConstants.swift and the entitlements files.
+        BUNDLE_ID: "com.PLACEHOLDER.giftkey"
+        KEYBOARD_BUNDLE_ID: "com.PLACEHOLDER.giftkey.keyboard"
+
+    # Only fires on a version tag, e.g. `git tag v1.0.0 && git push origin v1.0.0`.
+    triggering:
+      events:
+        - tag
+      tag_patterns:
+        - pattern: 'v*'
+          include: true
+
+    scripts:
+
+      - name: Refuse to ship placeholders
+        script: |
+          # Cheap guard that saves a 10 minute build and a confusing signing error.
+          if grep -rq "PLACEHOLDER" Shared/AppConstants.swift \
+                                    GiftKey/GiftKey.entitlements \
+                                    GiftKeyKeyboard/GiftKeyKeyboard.entitlements; then
+            echo "ERROR: PLACEHOLDER values are still present."
+            echo "Replace the bundle ID prefix and App Group before releasing."
+            echo "See README.md > 'Renaming / re-signing'."
+            exit 1
+          fi
+          echo "No placeholders found."
+
+      - name: Fetch signing files for BOTH bundle IDs
+        script: |
+          # A keyboard extension is a separate App ID and needs its own provisioning
+          # profile. Fetching only the app's profile is the classic failure here.
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE --create
+          app-store-connect fetch-signing-files "$KEYBOARD_BUNDLE_ID" \
+            --type IOS_APP_STORE --create
+
+      - name: Add certificates to keychain
+        script: |
+          keychain initialize
+          keychain add-certificates
+
+      - name: Apply profiles to the Xcode project
+        script: |
+          # Rewrites DEVELOPMENT_TEAM and the provisioning profile on both targets, so
+          # the PLACEHOLDERTEAMID in the checked-in project is replaced at build time.
+          xcode-project use-profiles
+
+      - name: Build and archive
+        script: |
+          xcode-project build-ipa \
+            --project "$XCODE_PROJECT" \
+            --scheme "$XCODE_SCHEME" \
+            --archive-xcargs "CODE_SIGN_STYLE=Manual CURRENT_PROJECT_VERSION=$PROJECT_BUILD_NUMBER"
+
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - build/ios/xcarchive/*.dSYM
+
+    publishing:
+      app_store_connect:
+        auth: integration
+        # Uploads to TestFlight. It does NOT submit for App Store review - that stays a
+        # deliberate button press in App Store Connect.
+        submit_to_testflight: true
+        submit_to_app_store: false
+      email:
+        recipients:
+          # PLACEHOLDER: your address.
+          - matthew@ryderwear.com.au
+        notify:
+          success: true
+          failure: true

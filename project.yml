@@ -1,0 +1,80 @@
+# XcodeGen spec for GiftKey.
+#
+# A checked-in GiftKey.xcodeproj is included, so you do NOT need XcodeGen to build.
+# This file exists so the project can be regenerated deterministically after adding
+# files, and so identifier changes only have to be made in one obvious place.
+#
+#   brew install xcodegen
+#   xcodegen generate
+#
+# PLACEHOLDERS TO CHANGE (see README > "Renaming / re-signing"):
+#   - bundleIdPrefix
+#   - DEVELOPMENT_TEAM
+#   - the App Group in both .entitlements files
+#   - AppConstants.swift
+
+name: GiftKey
+
+options:
+  bundleIdPrefix: com.PLACEHOLDER
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+  groupSortPosition: top
+
+settings:
+  base:
+    # PLACEHOLDER: your 10-character Apple Developer Team ID.
+    DEVELOPMENT_TEAM: PLACEHOLDERTEAMID
+    CODE_SIGN_STYLE: Automatic
+    SWIFT_VERSION: "5.0"
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    IPHONEOS_DEPLOYMENT_TARGET: "16.0"
+    TARGETED_DEVICE_FAMILY: "1,2"
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    SWIFT_EMIT_LOC_STRINGS: YES
+
+targets:
+
+  GiftKey:
+    type: application
+    platform: iOS
+    sources:
+      - path: GiftKey
+        excludes:
+          - "Info.plist"
+          - "GiftKey.entitlements"
+      - path: Shared
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.PLACEHOLDER.giftkey
+        PRODUCT_NAME: GiftKey
+        INFOPLIST_FILE: GiftKey/Info.plist
+        CODE_SIGN_ENTITLEMENTS: GiftKey/GiftKey.entitlements
+        GENERATE_INFOPLIST_FILE: NO
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+    dependencies:
+      - target: GiftKeyKeyboard
+        embed: true
+        codeSign: true
+
+  GiftKeyKeyboard:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: GiftKeyKeyboard
+        excludes:
+          - "Info.plist"
+          - "GiftKeyKeyboard.entitlements"
+      # The Shared folder is compiled into BOTH targets. Keep it dependency-free:
+      # anything added here is also loaded inside the keyboard's ~60-70 MB budget.
+      - path: Shared
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.PLACEHOLDER.giftkey.keyboard
+        PRODUCT_NAME: GiftKeyKeyboard
+        INFOPLIST_FILE: GiftKeyKeyboard/Info.plist
+        CODE_SIGN_ENTITLEMENTS: GiftKeyKeyboard/GiftKeyKeyboard.entitlements
+        GENERATE_INFOPLIST_FILE: NO

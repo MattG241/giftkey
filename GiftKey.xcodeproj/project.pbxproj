@@ -1,0 +1,559 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		AB0000000000000000000001 /* AppConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF0000000000000000000001 /* AppConstants.swift */; };
+		AB0000000000000000000002 /* BarcodeSymbology.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF0000000000000000000002 /* BarcodeSymbology.swift */; };
+		AB0000000000000000000003 /* Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF0000000000000000000003 /* Settings.swift */; };
+		AB0000000000000000000004 /* ValidationPreset.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF0000000000000000000004 /* ValidationPreset.swift */; };
+		AB0000000000000000000005 /* ScanPostProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF0000000000000000000005 /* ScanPostProcessor.swift */; };
+		AB0000000000000000000006 /* ScanHandoff.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF0000000000000000000006 /* ScanHandoff.swift */; };
+		AB0000000000000000000007 /* CameraController.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF0000000000000000000007 /* CameraController.swift */; };
+		AB0000000000000000000008 /* Feedback.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF0000000000000000000008 /* Feedback.swift */; };
+		AB0000000000000000000009 /* KeyboardPresence.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF0000000000000000000009 /* KeyboardPresence.swift */; };
+		AB000000000000000000000A /* GiftKeyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF000000000000000000000A /* GiftKeyApp.swift */; };
+		AB000000000000000000000B /* VisionSymbology.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF000000000000000000000B /* VisionSymbology.swift */; };
+		AB000000000000000000000C /* ScannerRepresentables.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF000000000000000000000C /* ScannerRepresentables.swift */; };
+		AB000000000000000000000F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FF000000000000000000000F /* Assets.xcassets */; };
+		AB0000000000000000000010 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF0000000000000000000010 /* RootView.swift */; };
+		AB0000000000000000000011 /* SetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF0000000000000000000011 /* SetupView.swift */; };
+		AB0000000000000000000012 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF0000000000000000000012 /* SettingsView.swift */; };
+		AB0000000000000000000013 /* InAppScannerHomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF0000000000000000000013 /* InAppScannerHomeView.swift */; };
+		AB0000000000000000000014 /* ScannerScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF0000000000000000000014 /* ScannerScreen.swift */; };
+		AB0000000000000000000015 /* FAQView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF0000000000000000000015 /* FAQView.swift */; };
+		AB000000000000000000001D /* GiftKeyKeyboard.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = FF000000000000000000001D /* GiftKeyKeyboard.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		EB0000000000000000000001 /* AppConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF0000000000000000000001 /* AppConstants.swift */; };
+		EB0000000000000000000002 /* BarcodeSymbology.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF0000000000000000000002 /* BarcodeSymbology.swift */; };
+		EB0000000000000000000003 /* Settings.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF0000000000000000000003 /* Settings.swift */; };
+		EB0000000000000000000004 /* ValidationPreset.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF0000000000000000000004 /* ValidationPreset.swift */; };
+		EB0000000000000000000005 /* ScanPostProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF0000000000000000000005 /* ScanPostProcessor.swift */; };
+		EB0000000000000000000006 /* ScanHandoff.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF0000000000000000000006 /* ScanHandoff.swift */; };
+		EB0000000000000000000007 /* CameraController.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF0000000000000000000007 /* CameraController.swift */; };
+		EB0000000000000000000008 /* Feedback.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF0000000000000000000008 /* Feedback.swift */; };
+		EB0000000000000000000009 /* KeyboardPresence.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF0000000000000000000009 /* KeyboardPresence.swift */; };
+		EB0000000000000000000016 /* KeyboardViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF0000000000000000000016 /* KeyboardViewController.swift */; };
+		EB0000000000000000000017 /* KeyboardIdleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF0000000000000000000017 /* KeyboardIdleView.swift */; };
+		EB0000000000000000000018 /* KeyboardScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF0000000000000000000018 /* KeyboardScannerView.swift */; };
+		EB0000000000000000000019 /* KeyButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF0000000000000000000019 /* KeyButton.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		EF0000000000000000000002 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AA0000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = EE0000000000000000000002;
+			remoteInfo = GiftKeyKeyboard;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		DD0000000000000000000004 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				AB000000000000000000001D /* GiftKeyKeyboard.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		FF0000000000000000000001 /* AppConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConstants.swift; sourceTree = "<group>"; };
+		FF0000000000000000000002 /* BarcodeSymbology.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BarcodeSymbology.swift; sourceTree = "<group>"; };
+		FF0000000000000000000003 /* Settings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Settings.swift; sourceTree = "<group>"; };
+		FF0000000000000000000004 /* ValidationPreset.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ValidationPreset.swift; sourceTree = "<group>"; };
+		FF0000000000000000000005 /* ScanPostProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanPostProcessor.swift; sourceTree = "<group>"; };
+		FF0000000000000000000006 /* ScanHandoff.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanHandoff.swift; sourceTree = "<group>"; };
+		FF0000000000000000000007 /* CameraController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraController.swift; sourceTree = "<group>"; };
+		FF0000000000000000000008 /* Feedback.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Feedback.swift; sourceTree = "<group>"; };
+		FF0000000000000000000009 /* KeyboardPresence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardPresence.swift; sourceTree = "<group>"; };
+		FF000000000000000000000A /* GiftKeyApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GiftKeyApp.swift; sourceTree = "<group>"; };
+		FF000000000000000000000B /* VisionSymbology.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisionSymbology.swift; sourceTree = "<group>"; };
+		FF000000000000000000000C /* ScannerRepresentables.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScannerRepresentables.swift; sourceTree = "<group>"; };
+		FF000000000000000000000D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		FF000000000000000000000E /* GiftKey.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = GiftKey.entitlements; sourceTree = "<group>"; };
+		FF000000000000000000000F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		FF0000000000000000000010 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		FF0000000000000000000011 /* SetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupView.swift; sourceTree = "<group>"; };
+		FF0000000000000000000012 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		FF0000000000000000000013 /* InAppScannerHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InAppScannerHomeView.swift; sourceTree = "<group>"; };
+		FF0000000000000000000014 /* ScannerScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScannerScreen.swift; sourceTree = "<group>"; };
+		FF0000000000000000000015 /* FAQView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FAQView.swift; sourceTree = "<group>"; };
+		FF0000000000000000000016 /* KeyboardViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardViewController.swift; sourceTree = "<group>"; };
+		FF0000000000000000000017 /* KeyboardIdleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardIdleView.swift; sourceTree = "<group>"; };
+		FF0000000000000000000018 /* KeyboardScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardScannerView.swift; sourceTree = "<group>"; };
+		FF0000000000000000000019 /* KeyButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyButton.swift; sourceTree = "<group>"; };
+		FF000000000000000000001A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		FF000000000000000000001B /* GiftKeyKeyboard.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = GiftKeyKeyboard.entitlements; sourceTree = "<group>"; };
+		FF000000000000000000001C /* GiftKey.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GiftKey.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		FF000000000000000000001D /* GiftKeyKeyboard.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = GiftKeyKeyboard.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		DD0000000000000000000002 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DD0000000000000000000006 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		CC0000000000000000000001 = {
+			isa = PBXGroup;
+			children = (
+				CC0000000000000000000002 /* Shared */,
+				CC0000000000000000000003 /* GiftKey */,
+				CC0000000000000000000005 /* GiftKeyKeyboard */,
+				CC0000000000000000000006 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		CC0000000000000000000002 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				FF0000000000000000000001 /* AppConstants.swift */,
+				FF0000000000000000000002 /* BarcodeSymbology.swift */,
+				FF0000000000000000000007 /* CameraController.swift */,
+				FF0000000000000000000008 /* Feedback.swift */,
+				FF0000000000000000000009 /* KeyboardPresence.swift */,
+				FF0000000000000000000006 /* ScanHandoff.swift */,
+				FF0000000000000000000005 /* ScanPostProcessor.swift */,
+				FF0000000000000000000003 /* Settings.swift */,
+				FF0000000000000000000004 /* ValidationPreset.swift */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		CC0000000000000000000003 /* GiftKey */ = {
+			isa = PBXGroup;
+			children = (
+				FF000000000000000000000A /* GiftKeyApp.swift */,
+				CC0000000000000000000004 /* Views */,
+				FF000000000000000000000C /* ScannerRepresentables.swift */,
+				FF000000000000000000000B /* VisionSymbology.swift */,
+				FF000000000000000000000F /* Assets.xcassets */,
+				FF000000000000000000000D /* Info.plist */,
+				FF000000000000000000000E /* GiftKey.entitlements */,
+			);
+			path = GiftKey;
+			sourceTree = "<group>";
+		};
+		CC0000000000000000000004 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				FF0000000000000000000010 /* RootView.swift */,
+				FF0000000000000000000011 /* SetupView.swift */,
+				FF0000000000000000000013 /* InAppScannerHomeView.swift */,
+				FF0000000000000000000014 /* ScannerScreen.swift */,
+				FF0000000000000000000012 /* SettingsView.swift */,
+				FF0000000000000000000015 /* FAQView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		CC0000000000000000000005 /* GiftKeyKeyboard */ = {
+			isa = PBXGroup;
+			children = (
+				FF0000000000000000000016 /* KeyboardViewController.swift */,
+				FF0000000000000000000017 /* KeyboardIdleView.swift */,
+				FF0000000000000000000018 /* KeyboardScannerView.swift */,
+				FF0000000000000000000019 /* KeyButton.swift */,
+				FF000000000000000000001A /* Info.plist */,
+				FF000000000000000000001B /* GiftKeyKeyboard.entitlements */,
+			);
+			path = GiftKeyKeyboard;
+			sourceTree = "<group>";
+		};
+		CC0000000000000000000006 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				FF000000000000000000001C /* GiftKey.app */,
+				FF000000000000000000001D /* GiftKeyKeyboard.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		EE0000000000000000000001 /* GiftKey */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BB0000000000000000000006 /* Build configuration list for PBXNativeTarget "GiftKey" */;
+			buildPhases = (
+				DD0000000000000000000001 /* Sources */,
+				DD0000000000000000000002 /* Frameworks */,
+				DD0000000000000000000003 /* Resources */,
+				DD0000000000000000000004 /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				EF0000000000000000000001 /* PBXTargetDependency */,
+			);
+			name = GiftKey;
+			productName = GiftKey;
+			productReference = FF000000000000000000001C /* GiftKey.app */;
+			productType = "com.apple.product-type.application";
+		};
+		EE0000000000000000000002 /* GiftKeyKeyboard */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BB0000000000000000000009 /* Build configuration list for PBXNativeTarget "GiftKeyKeyboard" */;
+			buildPhases = (
+				DD0000000000000000000005 /* Sources */,
+				DD0000000000000000000006 /* Frameworks */,
+				DD0000000000000000000007 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = GiftKeyKeyboard;
+			productName = GiftKeyKeyboard;
+			productReference = FF000000000000000000001D /* GiftKeyKeyboard.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		AA0000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1500;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					EE0000000000000000000001 = {
+						CreatedOnToolsVersion = 15.0;
+					};
+					EE0000000000000000000002 = {
+						CreatedOnToolsVersion = 15.0;
+					};
+				};
+			};
+			buildConfigurationList = BB0000000000000000000003 /* Build configuration list for PBXProject "GiftKey" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = CC0000000000000000000001;
+			productRefGroup = CC0000000000000000000006 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				EE0000000000000000000001 /* GiftKey */,
+				EE0000000000000000000002 /* GiftKeyKeyboard */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		DD0000000000000000000003 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AB000000000000000000000F /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DD0000000000000000000007 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		DD0000000000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AB0000000000000000000001 /* AppConstants.swift in Sources */,
+				AB0000000000000000000002 /* BarcodeSymbology.swift in Sources */,
+				AB0000000000000000000003 /* Settings.swift in Sources */,
+				AB0000000000000000000004 /* ValidationPreset.swift in Sources */,
+				AB0000000000000000000005 /* ScanPostProcessor.swift in Sources */,
+				AB0000000000000000000006 /* ScanHandoff.swift in Sources */,
+				AB0000000000000000000007 /* CameraController.swift in Sources */,
+				AB0000000000000000000008 /* Feedback.swift in Sources */,
+				AB0000000000000000000009 /* KeyboardPresence.swift in Sources */,
+				AB000000000000000000000A /* GiftKeyApp.swift in Sources */,
+				AB000000000000000000000B /* VisionSymbology.swift in Sources */,
+				AB000000000000000000000C /* ScannerRepresentables.swift in Sources */,
+				AB0000000000000000000010 /* RootView.swift in Sources */,
+				AB0000000000000000000011 /* SetupView.swift in Sources */,
+				AB0000000000000000000012 /* SettingsView.swift in Sources */,
+				AB0000000000000000000013 /* InAppScannerHomeView.swift in Sources */,
+				AB0000000000000000000014 /* ScannerScreen.swift in Sources */,
+				AB0000000000000000000015 /* FAQView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DD0000000000000000000005 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				EB0000000000000000000001 /* AppConstants.swift in Sources */,
+				EB0000000000000000000002 /* BarcodeSymbology.swift in Sources */,
+				EB0000000000000000000003 /* Settings.swift in Sources */,
+				EB0000000000000000000004 /* ValidationPreset.swift in Sources */,
+				EB0000000000000000000005 /* ScanPostProcessor.swift in Sources */,
+				EB0000000000000000000006 /* ScanHandoff.swift in Sources */,
+				EB0000000000000000000007 /* CameraController.swift in Sources */,
+				EB0000000000000000000008 /* Feedback.swift in Sources */,
+				EB0000000000000000000009 /* KeyboardPresence.swift in Sources */,
+				EB0000000000000000000016 /* KeyboardViewController.swift in Sources */,
+				EB0000000000000000000017 /* KeyboardIdleView.swift in Sources */,
+				EB0000000000000000000018 /* KeyboardScannerView.swift in Sources */,
+				EB0000000000000000000019 /* KeyButton.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		EF0000000000000000000001 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = EE0000000000000000000002 /* GiftKeyKeyboard */;
+			targetProxy = EF0000000000000000000002 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		BB0000000000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		BB0000000000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_VERSION = 5.0;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		BB0000000000000000000004 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = GiftKey/GiftKey.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = PLACEHOLDERTEAMID;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = GiftKey/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.PLACEHOLDER.giftkey";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		BB0000000000000000000005 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = GiftKey/GiftKey.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = PLACEHOLDERTEAMID;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = GiftKey/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.PLACEHOLDER.giftkey";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		BB0000000000000000000007 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = GiftKeyKeyboard/GiftKeyKeyboard.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = PLACEHOLDERTEAMID;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = GiftKeyKeyboard/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.PLACEHOLDER.giftkey.keyboard";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		BB0000000000000000000008 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = GiftKeyKeyboard/GiftKeyKeyboard.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = PLACEHOLDERTEAMID;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = GiftKeyKeyboard/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.PLACEHOLDER.giftkey.keyboard";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		BB0000000000000000000003 /* Build configuration list for PBXProject "GiftKey" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BB0000000000000000000001 /* Debug */,
+				BB0000000000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		BB0000000000000000000006 /* Build configuration list for PBXNativeTarget "GiftKey" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BB0000000000000000000004 /* Debug */,
+				BB0000000000000000000005 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		BB0000000000000000000009 /* Build configuration list for PBXNativeTarget "GiftKeyKeyboard" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BB0000000000000000000007 /* Debug */,
+				BB0000000000000000000008 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = AA0000000000000000000001 /* Project object */;
+}

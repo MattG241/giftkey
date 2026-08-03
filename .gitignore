@@ -1,0 +1,27 @@
+## macOS / Xcode
+.DS_Store
+*.xcuserstate
+xcuserdata/
+*.xcscmblueprint
+*.xccheckout
+build/
+DerivedData/
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+## Xcode project user data (the shared scheme IS checked in)
+GiftKey.xcodeproj/project.xcworkspace/xcuserdata/
+GiftKey.xcodeproj/xcuserdata/
+
+## Swift Package Manager (unused, but harmless to guard)
+.build/
+.swiftpm/
+
+## Fastlane / provisioning
+*.mobileprovision
+*.p12
+fastlane/report.xml
+fastlane/screenshots
