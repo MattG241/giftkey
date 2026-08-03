@@ -39,8 +39,10 @@ struct RootView: View {
                 .tag(Tab.faq)
         }
         .onAppear {
-            // Returning users land on Settings; first-timers land on Setup.
-            if settings.onboardingComplete && selectedTab == .setup {
+            if let forced = RootView.screenshotTab {
+                selectedTab = forced
+            } else if settings.onboardingComplete && selectedTab == .setup {
+                // Returning users land on Settings; first-timers land on Setup.
                 selectedTab = .settings
             }
         }
@@ -48,5 +50,27 @@ struct RootView: View {
             guard request != nil else { return }
             selectedTab = .scan
         }
+    }
+
+    // MARK: - Screenshot automation
+
+    /// Opens a specific tab on launch, for the App Store screenshot workflow.
+    ///
+    /// Driven by `-GiftKeyScreenshotTab <setup|scan|settings|faq>` passed on the command
+    /// line, which lands in UserDefaults' argument domain. Compiled out of release
+    /// builds entirely, and even in debug it is inert unless that argument is present,
+    /// so it cannot affect a real launch.
+    private static var screenshotTab: Tab? {
+        #if DEBUG
+        switch UserDefaults.standard.string(forKey: "GiftKeyScreenshotTab") {
+        case "setup":    return .setup
+        case "scan":     return .scan
+        case "settings": return .settings
+        case "faq":      return .faq
+        default:         return nil
+        }
+        #else
+        return nil
+        #endif
     }
 }

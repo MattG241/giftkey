@@ -82,6 +82,137 @@ workflows:
           failure: true
 
   # ---------------------------------------------------------------------------
+  # 3. App Store screenshots from the iOS Simulator
+  # ---------------------------------------------------------------------------
+  #
+  # Manual-only (no `triggering:` block) - run it from the Codemagic UI when you need
+  # fresh screenshots. No signing and no Apple account needed.
+  #
+  # LIMITATION, read before relying on this: the iOS Simulator has NO CAMERA. It can
+  # only capture the containing app's Setup, Settings and FAQ screens. The scanner
+  # screens - live preview, reticle, batch counter, rejection shake - cannot be captured
+  # without real hardware, and those are the screenshots that actually sell a scanner
+  # app. Use this to clear the submission gate, not as a substitute for device shots.
+  # ---------------------------------------------------------------------------
+  screenshots:
+    name: GiftKey - simulator screenshots
+    instance_type: mac_mini_m2
+    max_build_duration: 30
+    environment:
+      <<: *base_env
+      vars:
+        BUNDLE_ID: "com.mattgroves.giftkey"
+        # App Store Connect's 6.5" iPhone slot. The simulator's native resolution
+        # differs slightly by device, so everything is normalised to this at the end.
+        SHOT_WIDTH: "1284"
+        SHOT_HEIGHT: "2778"
+
+    scripts:
+
+      - name: Build for simulator
+        script: |
+          set -o pipefail
+          xcodebuild \
+            -project "$XCODE_PROJECT" \
+            -scheme "$XCODE_SCHEME" \
+            -sdk iphonesimulator \
+            -configuration Debug \
+            -derivedDataPath build \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            DEVELOPMENT_TEAM="" \
+            build
+
+      - name: Boot a simulator
+        script: |
+          set -e
+          # Pick the largest available iPhone: a Pro Max gives the closest native
+          # aspect ratio to the 6.5" slot, so the final resize distorts least.
+          UDID=$(python3 - <<'PY'
+          import json, subprocess, sys
+          raw = subprocess.run(["xcrun", "simctl", "list", "devices", "available", "-j"],
+                               capture_output=True, text=True).stdout
+          best = None
+          for runtime, devices in json.loads(raw)["devices"].items():
+              if "iOS" not in runtime:
+                  continue
+              for d in devices:
+                  name = d["name"]
+                  if not name.startswith("iPhone"):
+                      continue
+                  score = 3 if "Pro Max" in name else 2 if "Plus" in name else 1
+                  if best is None or score > best[0]:
+                      best = (score, d["udid"], name)
+          if not best:
+              sys.exit("No iPhone simulator available on this image")
+          print(f"{best[1]} {best[2]}", file=sys.stderr)
+          print(best[1])
+          PY
+          )
+          echo "SIM_UDID=$UDID" >> $CM_ENV
+
+          xcrun simctl boot "$UDID" || true
+          xcrun simctl bootstatus "$UDID" -b
+
+          # A tidy status bar. Cosmetic, but a screenshot showing 14% battery and a
+          # stray carrier name looks careless on a product page.
+          xcrun simctl status_bar "$UDID" override \
+            --time "9:41" \
+            --batteryState charged \
+            --batteryLevel 100 \
+            --cellularBars 4 \
+            --wifiBars 3 || true
+
+      - name: Capture screens
+        script: |
+          set -e
+          APP=$(find build/Build/Products/Debug-iphonesimulator -maxdepth 1 -name '*.app' | head -1)
+          echo "Installing $APP"
+          xcrun simctl install "$SIM_UDID" "$APP"
+
+          mkdir -p screenshots
+
+          capture () {
+            TAB="$1"; OUT="$2"
+            # -GiftKeyScreenshotTab lands in UserDefaults' argument domain, which
+            # RootView reads to open a specific tab. Debug builds only.
+            xcrun simctl launch "$SIM_UDID" "$BUNDLE_ID" -GiftKeyScreenshotTab "$TAB"
+            sleep 5   # let SwiftUI settle before the shutter
+            xcrun simctl io "$SIM_UDID" screenshot "screenshots/$OUT"
+            xcrun simctl terminate "$SIM_UDID" "$BUNDLE_ID" || true
+            sleep 1
+          }
+
+          capture setup    01-setup.png
+          capture settings 02-settings.png
+          capture faq      03-faq.png
+
+          # Deliberately NOT capturing the Scan tab: it opens the camera, which does not
+          # exist in the Simulator, so the shot would be a black rectangle.
+
+      - name: Normalise to App Store dimensions
+        script: |
+          set -e
+          for f in screenshots/*.png; do
+            # sips ships with macOS - no extra tooling to install.
+            sips -z "$SHOT_HEIGHT" "$SHOT_WIDTH" "$f" --out "$f" > /dev/null
+            echo "$(basename "$f") -> $(sips -g pixelWidth -g pixelHeight "$f" | tr '\n' ' ')"
+          done
+
+    artifacts:
+      - screenshots/*.png
+
+    publishing:
+      email:
+        recipients:
+          - mgroves5022@outlook.com
+        notify:
+          success: true
+          failure: true
+
+  # ---------------------------------------------------------------------------
   # 2. Signed release to TestFlight
   # ---------------------------------------------------------------------------
   ios-release:
