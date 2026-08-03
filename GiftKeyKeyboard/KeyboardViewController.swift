@@ -495,7 +495,7 @@ extension KeyboardViewController: CameraControllerDelegate {
                           didFailWith failure: CameraController.Failure) {
         // Path A is not viable here. Fall back to Path B for the rest of the session.
         switch failure {
-        case .noCamera, .configurationFailed:
+        case .noCamera, .configurationFailed, .sessionWouldNotStart:
             pathAFailed = true
         case .permissionDenied, .permissionUndetermined:
             break
@@ -503,7 +503,14 @@ extension KeyboardViewController: CameraControllerDelegate {
 
         stopScanning(returningToIdle: true, animated: true)
 
-        let suffix = pathAFailed ? " Use Scan in app instead." : ""
+        // When the camera cannot run in the keyboard at all, stop offering it. Flipping
+        // the stored preference means the user is not left tapping a button that will
+        // never work, on this device or on the next launch.
+        if case .sessionWouldNotStart = failure {
+            settings.scanMode = .inApp
+        }
+
+        let suffix = pathAFailed ? " Switched to Scan in app." : ""
         showIdleStatus(failure.message + suffix, isError: true, resetAfter: 6)
     }
 }

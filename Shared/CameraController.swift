@@ -40,6 +40,10 @@ final class CameraController: NSObject {
         case permissionUndetermined
         case noCamera
         case configurationFailed
+        /// The session was built correctly but iOS never let it run. Seen inside the
+        /// keyboard extension, where the system can decline the camera to a process
+        /// running alongside a foreground host app.
+        case sessionWouldNotStart(reason: String?)
 
         var message: String {
             switch self {
@@ -51,6 +55,11 @@ final class CameraController: NSObject {
                 return "No camera available on this device."
             case .configurationFailed:
                 return "Could not start the camera."
+            case .sessionWouldNotStart(let reason):
+                if let reason {
+                    return "iOS would not start the camera here (\(reason))."
+                }
+                return "iOS would not start the camera inside the keyboard."
             }
         }
     }
@@ -138,6 +147,11 @@ final class CameraController: NSObject {
     private(set) var diagnosticOutputCount = 0
     private(set) var diagnosticFrameCount = 0
 
+    /// Why the session was interrupted, if it was. This is the answer to
+    /// "configured fine, in 1 out 2, but running N".
+    private(set) var lastInterruptionReason: String?
+    private(set) var lastRuntimeError: String?
+
     var isSessionRunning: Bool { session.isRunning }
 
     var diagnosticSummary: String {
@@ -149,9 +163,62 @@ final class CameraController: NSObject {
         case .notDetermined: auth = "undetermined"
         @unknown default:    auth = "?"
         }
-        return "\(auth) | running \(session.isRunning ? "Y" : "N") | "
-             + "in \(diagnosticInputCount) out \(diagnosticOutputCount) | "
-             + "frames \(diagnosticFrameCount)"
+        var summary = "\(auth) | running \(session.isRunning ? "Y" : "N") | "
+                    + "in \(diagnosticInputCount) out \(diagnosticOutputCount) | "
+                    + "frames \(diagnosticFrameCount)"
+        if let lastInterruptionReason {
+            summary += "\nINTERRUPTED: \(lastInterruptionReason)"
+        }
+        if let lastRuntimeError {
+            summary += "\nERROR: \(lastRuntimeError)"
+        }
+        return summary
+    }
+
+    // MARK: - Session notifications
+
+    /// Without these, a session that iOS silently refuses to run is indistinguishable
+    /// from one that is merely slow to start.
+    private func observeSessionNotifications() {
+        let centre = NotificationCenter.default
+        centre.addObserver(self, selector: #selector(sessionWasInterrupted(_:)),
+                           name: .AVCaptureSessionWasInterrupted, object: session)
+        centre.addObserver(self, selector: #selector(sessionInterruptionEnded(_:)),
+                           name: .AVCaptureSessionInterruptionEnded, object: session)
+        centre.addObserver(self, selector: #selector(sessionRuntimeError(_:)),
+                           name: .AVCaptureSessionRuntimeError, object: session)
+    }
+
+    @objc private func sessionWasInterrupted(_ note: Notification) {
+        let raw = note.userInfo?[AVCaptureSessionInterruptionReasonKey] as? Int
+        let reason = raw.flatMap(AVCaptureSession.InterruptionReason.init(rawValue:))
+        lastInterruptionReason = CameraController.describe(reason)
+    }
+
+    @objc private func sessionInterruptionEnded(_ note: Notification) {
+        lastInterruptionReason = nil
+    }
+
+    @objc private func sessionRuntimeError(_ note: Notification) {
+        let error = note.userInfo?[AVCaptureSessionErrorKey] as? NSError
+        lastRuntimeError = error.map { "\($0.domain) \($0.code)" } ?? "unknown"
+    }
+
+    private static func describe(_ reason: AVCaptureSession.InterruptionReason?) -> String {
+        switch reason {
+        case .videoDeviceNotAvailableInBackground:
+            return "camera unavailable in background"
+        case .audioDeviceInUseByAnotherClient:
+            return "audio in use elsewhere"
+        case .videoDeviceInUseByAnotherClient:
+            return "camera in use by another app"
+        case .videoDeviceNotAvailableWithMultipleForegroundApps:
+            return "camera denied alongside host app"
+        case .videoDeviceNotAvailableDueToSystemPressure:
+            return "system pressure"
+        default:
+            return "unknown reason"
+        }
     }
 
     // Debounce: an identical payload seen within this window counts as one scan.
@@ -171,6 +238,7 @@ final class CameraController: NSObject {
     }
 
     deinit {
+        NotificationCenter.default.removeObserver(self)
         // Best-effort teardown if the host forgot.
         session.stopRunning()
     }
@@ -242,6 +310,10 @@ final class CameraController: NSObject {
             onPreviewLayerReady?(layer)
         }
 
+        lastInterruptionReason = nil
+        lastRuntimeError = nil
+        observeSessionNotifications()
+
         sessionQueue.async { [weak self] in
             guard let self else { return }
             guard self.configureSession() else {
@@ -253,6 +325,17 @@ final class CameraController: NSObject {
             }
             if !self.session.isRunning {
                 self.session.startRunning()
+            }
+
+            // Watchdog. A session can configure perfectly - inputs and outputs all
+            // attached - and still never run, because iOS declined it. Without this the
+            // host sits on a black rectangle forever with no error to show the user.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { [weak self] in
+                guard let self, self.isRunning, !self.session.isRunning else { return }
+                self.delegate?.cameraController(
+                    self,
+                    didFailWith: .sessionWouldNotStart(reason: self.lastInterruptionReason)
+                )
             }
         }
     }
@@ -266,6 +349,7 @@ final class CameraController: NSObject {
         isPaused = false
         previewLayer = nil
         resetDebounce()
+        NotificationCenter.default.removeObserver(self)
 
         sessionQueue.async { [weak self] in
             guard let self else { return }
