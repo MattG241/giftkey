@@ -94,143 +94,121 @@ workflows:
   # Manual-only (no `triggering:` block) - run it from the Codemagic UI when you need
   # fresh screenshots. No signing and no Apple account needed.
   #
-  # LIMITATION, read before relying on this: the iOS Simulator has NO CAMERA. It can
-  # only capture the containing app's Setup, Settings and FAQ screens. The scanner
-  # screens - live preview, reticle, batch counter, rejection shake - cannot be captured
-  # without real hardware, and those are the screenshots that actually sell a scanner
-  # app. Use this to clear the submission gate, not as a substitute for device shots.
+  # Captures both device families, because App Store Connect requires iPhone screenshots
+  # always and iPad screenshots whenever the app supports iPad (this one does).
+  #
+  # LIMITATION: the Simulator has NO CAMERA, so only the app's Setup, Scan, Settings and
+  # FAQ screens can be captured. The scanner with a barcode in frame - the shot that
+  # actually sells a scanner app - needs real hardware. Shoot that by hand on a device
+  # and substitute it in as screenshot 2 if you can.
   # ---------------------------------------------------------------------------
   screenshots:
     name: GiftKey - simulator screenshots
     instance_type: mac_mini_m2
-    max_build_duration: 30
+    max_build_duration: 40
     environment:
       xcode: latest
       vars:
         XCODE_PROJECT: "GiftKey.xcodeproj"
         XCODE_SCHEME: "GiftKey"
         BUNDLE_ID: "com.mattgroves.giftkey"
-        # App Store Connect's 6.5" iPhone slot. The simulator's native resolution
-        # differs slightly by device, so everything is normalised to this at the end.
-        SHOT_WIDTH: "1284"
-        SHOT_HEIGHT: "2778"
+        # Exactly what App Store Connect accepts. Simulator native resolutions differ
+        # by device, so everything is normalised to these at the end.
+        IPHONE_SIZE: "1284x2778"    # 6.5" iPhone slot
+        IPAD_SIZE: "2048x2732"      # 12.9" iPad slot
 
     scripts:
 
       - name: Build for simulator
         script: |
           set -o pipefail
-          # Fail loudly if a var is unset. An empty $XCODE_PROJECT yields
-          # `xcodebuild -project ` and the useless error "'' is not a project file".
           : "${XCODE_PROJECT:?not set - check this workflow's vars block}"
           : "${XCODE_SCHEME:?not set - check this workflow's vars block}"
-          xcodebuild \
-            -project "$XCODE_PROJECT" \
-            -scheme "$XCODE_SCHEME" \
-            -sdk iphonesimulator \
-            -configuration Debug \
-            -derivedDataPath build \
-            -destination 'generic/platform=iOS Simulator' \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY="" \
-            DEVELOPMENT_TEAM="" \
-            build
+          xcodebuild             -project "$XCODE_PROJECT"             -scheme "$XCODE_SCHEME"             -sdk iphonesimulator             -configuration Debug             -derivedDataPath build             -destination 'generic/platform=iOS Simulator'             CODE_SIGNING_ALLOWED=NO             CODE_SIGNING_REQUIRED=NO             CODE_SIGN_IDENTITY=""             DEVELOPMENT_TEAM=""             build
 
-      - name: Boot a simulator
+      - name: Capture both device families
         script: |
           set -e
-          # Pick the largest available iPhone: a Pro Max gives the closest native
-          # aspect ratio to the 6.5" slot, so the final resize distorts least.
-          UDID=$(python3 - <<'PY'
+
+          ROOT="${CM_BUILD_DIR:-$PWD}"
+          APP=$(find "$ROOT/build/Build/Products/Debug-iphonesimulator" -maxdepth 1 -name '*.app' | head -1)
+          [ -n "$APP" ] || { echo "ERROR: no .app produced by the build step"; exit 1; }
+          echo "App: $APP"
+
+          # Largest available simulator of each family. A Pro Max / iPad Pro has the
+          # closest native aspect to the App Store slots, so the final resize distorts
+          # least.
+          python3 - > /tmp/giftkey-devices.txt <<'PY'
           import json, subprocess, sys
           raw = subprocess.run(["xcrun", "simctl", "list", "devices", "available", "-j"],
                                capture_output=True, text=True).stdout
-          best = None
+          phone = pad = None
           for runtime, devices in json.loads(raw)["devices"].items():
               if "iOS" not in runtime:
                   continue
               for d in devices:
                   name = d["name"]
-                  if not name.startswith("iPhone"):
-                      continue
-                  score = 3 if "Pro Max" in name else 2 if "Plus" in name else 1
-                  if best is None or score > best[0]:
-                      best = (score, d["udid"], name)
-          if not best:
+                  if name.startswith("iPhone"):
+                      score = 3 if "Pro Max" in name else 2 if "Plus" in name else 1
+                      if phone is None or score > phone[0]:
+                          phone = (score, d["udid"], name)
+                  elif name.startswith("iPad"):
+                      score = 3 if "Pro" in name else 2 if "Air" in name else 1
+                      if pad is None or score > pad[0]:
+                          pad = (score, d["udid"], name)
+          if phone is None:
               sys.exit("No iPhone simulator available on this image")
-          print(f"{best[1]} {best[2]}", file=sys.stderr)
-          print(best[1])
+          parts = [phone[1], phone[2].replace(" ", "_")]
+          parts += [pad[1], pad[2].replace(" ", "_")] if pad else ["", "none"]
+          print(" ".join(parts))
           PY
-          )
-          echo "SIM_UDID=$UDID" >> $CM_ENV
+          read PHONE_UDID PHONE_NAME PAD_UDID PAD_NAME < /tmp/giftkey-devices.txt
 
-          xcrun simctl boot "$UDID" || true
-          xcrun simctl bootstatus "$UDID" -b
+          echo "iPhone: $PHONE_NAME ($PHONE_UDID)"
+          echo "iPad:   $PAD_NAME ($PAD_UDID)"
 
-          # A tidy status bar. Cosmetic, but a screenshot showing 14% battery and a
-          # stray carrier name looks careless on a product page.
-          xcrun simctl status_bar "$UDID" override \
-            --time "9:41" \
-            --batteryState charged \
-            --batteryLevel 100 \
-            --cellularBars 4 \
-            --wifiBars 3 || true
+          capture_family () {
+            UDID="$1"; OUTDIR="$2"; GEOMETRY="$3"
+            [ -n "$UDID" ] || { echo "skipping $OUTDIR - no simulator"; return 0; }
 
-      - name: Capture screens
-        script: |
-          set -e
+            mkdir -p "$OUTDIR"
+            xcrun simctl boot "$UDID" || true
+            xcrun simctl bootstatus "$UDID" -b
 
-          # Absolute paths throughout. `simctl io ... screenshot` resolves its output
-          # path against its own working directory, not the shell's, so a relative
-          # "screenshots/x.png" fails with the misleading
-          # 'The folder "x.png" doesn't exist'.
-          SHOT_DIR="${CM_BUILD_DIR:-$PWD}/screenshots"
-          mkdir -p "$SHOT_DIR"
-          echo "SHOT_DIR=$SHOT_DIR" >> $CM_ENV
-          echo "Writing screenshots to $SHOT_DIR"
+            # A tidy status bar. Cosmetic, but 14% battery on a product page looks
+            # careless.
+            xcrun simctl status_bar "$UDID" override               --time "9:41" --batteryState charged --batteryLevel 100               --cellularBars 4 --wifiBars 3 || true
 
-          APP=$(find "${CM_BUILD_DIR:-$PWD}/build/Build/Products/Debug-iphonesimulator" \
-                  -maxdepth 1 -name '*.app' | head -1)
-          [ -n "$APP" ] || { echo "ERROR: no .app produced by the build step"; exit 1; }
-          echo "Installing $APP"
-          xcrun simctl install "$SIM_UDID" "$APP"
+            xcrun simctl install "$UDID" "$APP"
 
-          capture () {
-            TAB="$1"; OUT="$SHOT_DIR/$2"
-            # -GiftKeyScreenshotTab lands in UserDefaults' argument domain, which
-            # RootView reads to open a specific tab. Debug builds only.
-            xcrun simctl launch "$SIM_UDID" "$BUNDLE_ID" -GiftKeyScreenshotTab "$TAB"
-            sleep 6   # let SwiftUI settle before the shutter
-            xcrun simctl io "$SIM_UDID" screenshot "$OUT"
-            # Verify rather than trusting the exit code - a 0-byte file is still a fail.
-            [ -s "$OUT" ] || { echo "ERROR: $OUT was not written"; exit 1; }
-            echo "captured $(basename "$OUT")"
-            xcrun simctl terminate "$SIM_UDID" "$BUNDLE_ID" || true
-            sleep 1
+            i=1
+            for TAB in setup scan settings faq; do
+              OUT="$OUTDIR/$(printf '%02d' $i)-$TAB.png"
+              # -GiftKeyScreenshotTab lands in UserDefaults' argument domain, which
+              # RootView reads. The scan tab does NOT open the camera unless launched
+              # from the keyboard, so it is safe to capture here.
+              xcrun simctl launch "$UDID" "$BUNDLE_ID" -GiftKeyScreenshotTab "$TAB"
+              sleep 6
+              xcrun simctl io "$UDID" screenshot "$OUT"
+              [ -s "$OUT" ] || { echo "ERROR: $OUT was not written"; exit 1; }
+              W="${GEOMETRY%x*}"; H="${GEOMETRY#*x}"
+              sips -z "$H" "$W" "$OUT" --out "$OUT" > /dev/null
+              echo "  $(basename "$OUT") -> ${W}x${H}"
+              xcrun simctl terminate "$UDID" "$BUNDLE_ID" || true
+              i=$((i + 1))
+            done
+
+            xcrun simctl shutdown "$UDID" || true
           }
 
-          capture setup    01-setup.png
-          capture settings 02-settings.png
-          capture faq      03-faq.png
+          capture_family "$PHONE_UDID" "$ROOT/screenshots/iphone" "$IPHONE_SIZE"
+          capture_family "$PAD_UDID"   "$ROOT/screenshots/ipad"   "$IPAD_SIZE"
 
-          # Deliberately NOT capturing the Scan tab: it opens the camera, which does not
-          # exist in the Simulator, so the shot would be a black rectangle.
-
-          ls -la "$SHOT_DIR"
-
-      - name: Normalise to App Store dimensions
-        script: |
-          set -e
-          SHOT_DIR="${SHOT_DIR:-${CM_BUILD_DIR:-$PWD}/screenshots}"
-          for f in "$SHOT_DIR"/*.png; do
-            # sips ships with macOS - no extra tooling to install.
-            sips -z "$SHOT_HEIGHT" "$SHOT_WIDTH" "$f" --out "$f" > /dev/null
-            echo "$(basename "$f") -> $(sips -g pixelWidth -g pixelHeight "$f" | tr '\n' ' ')"
-          done
+          echo ""
+          find "$ROOT/screenshots" -name '*.png' | sort
 
     artifacts:
-      - screenshots/*.png
+      - screenshots/**/*.png
 
     publishing:
       email:
