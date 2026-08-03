@@ -180,19 +180,32 @@ workflows:
       - name: Capture screens
         script: |
           set -e
-          APP=$(find build/Build/Products/Debug-iphonesimulator -maxdepth 1 -name '*.app' | head -1)
+
+          # Absolute paths throughout. `simctl io ... screenshot` resolves its output
+          # path against its own working directory, not the shell's, so a relative
+          # "screenshots/x.png" fails with the misleading
+          # 'The folder "x.png" doesn't exist'.
+          SHOT_DIR="${CM_BUILD_DIR:-$PWD}/screenshots"
+          mkdir -p "$SHOT_DIR"
+          echo "SHOT_DIR=$SHOT_DIR" >> $CM_ENV
+          echo "Writing screenshots to $SHOT_DIR"
+
+          APP=$(find "${CM_BUILD_DIR:-$PWD}/build/Build/Products/Debug-iphonesimulator" \
+                  -maxdepth 1 -name '*.app' | head -1)
+          [ -n "$APP" ] || { echo "ERROR: no .app produced by the build step"; exit 1; }
           echo "Installing $APP"
           xcrun simctl install "$SIM_UDID" "$APP"
 
-          mkdir -p screenshots
-
           capture () {
-            TAB="$1"; OUT="$2"
+            TAB="$1"; OUT="$SHOT_DIR/$2"
             # -GiftKeyScreenshotTab lands in UserDefaults' argument domain, which
             # RootView reads to open a specific tab. Debug builds only.
             xcrun simctl launch "$SIM_UDID" "$BUNDLE_ID" -GiftKeyScreenshotTab "$TAB"
-            sleep 5   # let SwiftUI settle before the shutter
-            xcrun simctl io "$SIM_UDID" screenshot "screenshots/$OUT"
+            sleep 6   # let SwiftUI settle before the shutter
+            xcrun simctl io "$SIM_UDID" screenshot "$OUT"
+            # Verify rather than trusting the exit code - a 0-byte file is still a fail.
+            [ -s "$OUT" ] || { echo "ERROR: $OUT was not written"; exit 1; }
+            echo "captured $(basename "$OUT")"
             xcrun simctl terminate "$SIM_UDID" "$BUNDLE_ID" || true
             sleep 1
           }
@@ -204,10 +217,13 @@ workflows:
           # Deliberately NOT capturing the Scan tab: it opens the camera, which does not
           # exist in the Simulator, so the shot would be a black rectangle.
 
+          ls -la "$SHOT_DIR"
+
       - name: Normalise to App Store dimensions
         script: |
           set -e
-          for f in screenshots/*.png; do
+          SHOT_DIR="${SHOT_DIR:-${CM_BUILD_DIR:-$PWD}/screenshots}"
+          for f in "$SHOT_DIR"/*.png; do
             # sips ships with macOS - no extra tooling to install.
             sips -z "$SHOT_HEIGHT" "$SHOT_WIDTH" "$f" --out "$f" > /dev/null
             echo "$(basename "$f") -> $(sips -g pixelWidth -g pixelHeight "$f" | tr '\n' ' ')"
