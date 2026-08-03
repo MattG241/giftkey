@@ -21,12 +21,6 @@
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 
-	<!-- The extension has its own camera usage string. The containing app's string is
-	     NOT inherited: without this key the keyboard is killed the moment it touches
-	     AVCaptureDevice. -->
-	<key>NSCameraUsageDescription</key>
-	<string>GiftKey uses the camera to read barcodes and type them into the field you are editing. Images are never stored or sent anywhere.</string>
-
 	<key>NSExtension</key>
 	<dict>
 		<key>NSExtensionAttributes</key>

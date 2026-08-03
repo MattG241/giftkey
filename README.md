@@ -52,8 +52,8 @@ Shared/                    Compiled into BOTH targets
   ValidationPreset.swift   Named validation regexes
   ScanPostProcessor.swift  The pipeline. Pure functions, no UIKit
   BarcodeSymbology.swift   Symbology model + AVFoundation mapping
-  CameraController.swift   AVCaptureSession wrapper (Path A engine)
-  ScanHandoff.swift        Path B App Group handoff, 60 s expiry
+  CameraController.swift   AVCaptureSession wrapper (app-side scanning)
+  ScanHandoff.swift        App Group handoff, 60 s expiry
   KeyboardPresence.swift   Keyboard heartbeat so the app can show install status
   Feedback.swift           Haptics and beeps
 
@@ -65,14 +65,13 @@ GiftKey/                   Containing app (SwiftUI)
     RootView.swift         Tabs
     SetupView.swift        Onboarding + live status + test field
     SettingsView.swift     The whole pipeline, with a live preview
-    InAppScannerHomeView.swift  Scan tab / Path B endpoint
+    InAppScannerHomeView.swift  Scan tab / handoff endpoint
     ScannerScreen.swift    Full-screen scanner UI
     FAQView.swift          Why Full Access, what is collected (nothing)
 
 GiftKeyKeyboard/           Keyboard extension (UIKit)
-  KeyboardViewController.swift  Principal class, state machine, insertion
-  KeyboardIdleView.swift        Default state
-  KeyboardScannerView.swift     Live preview, reticle, torch, counter
+  KeyboardViewController.swift  Principal class: opens the app, types the result
+  KeyboardIdleView.swift        The four keys
   KeyButton.swift               Key styling and hold-to-repeat
 ```
 
@@ -132,28 +131,37 @@ both `Info.plist` files, the target/product names in `project.yml`, and
 
 ## How it works
 
-### Path A — camera inside the keyboard (default)
+### There is no camera in the keyboard, and there cannot be
 
-`KeyboardViewController` owns a `CameraController` that runs an `AVCaptureSession` with
-an `AVCaptureMetadataOutput` directly inside the extension. On decode, the value goes
-through `ScanPostProcessor` and straight into `textDocumentProxy.insertText()`.
+iOS does not permit a keyboard extension to use the camera. Apple, on the developer
+forums:
 
-Fast, and the user never leaves the POS app. Requires Full Access.
+> "the camera is still not available to keyboard extensions. The only extension you can
+> use the camera from is an iMessage Extension."
+> — <https://developer.apple.com/forums/thread/681975>
 
-### Path B — scan in the containing app
+This is not a permission or a Full Access gate. An `AVCaptureSession` inside a keyboard
+extension configures perfectly — inputs and outputs all attach — and then never runs,
+which presents as a solid black preview. Diagnosing that cost several build cycles;
+hence this section.
 
-The keyboard opens `giftkey://scan`. The app launches into a full-screen scanner
-(VisionKit's `DataScannerViewController` where supported, the shared `CameraController`
-otherwise), writes the raw result into the App Group with a timestamp, and prompts the
-user to switch back. When the keyboard next becomes active it consumes the handoff,
-processes it, and types it.
+### The round trip
 
-Both paths are fully built. The user chooses in **Settings > Scan mode**, and Path B is
-surfaced automatically if Path A fails at runtime on a given device.
+1. The keyboard opens `giftkey://scan` by walking the responder chain to `openURL:`
+2. The app launches straight into a full-screen scanner — VisionKit's
+   `DataScannerViewController` where supported, the shared `CameraController` otherwise
+3. The raw result is written to the App Group with a timestamp
+4. The user taps the **← Back to \<app\>** breadcrumb iOS puts in the status bar
+5. The keyboard consumes the handoff, runs it through `ScanPostProcessor`, and types it
+
+Two extra taps versus scanning in place. Every camera-based keyboard wedge on iOS works
+this way; the ones that appear to scan in place (Cognex, Honeywell, CodeCorp) are paired
+with Bluetooth laser scanners rather than using the camera.
 
 The handoff carries the **raw** value, not the processed one, so processing always
 reflects the settings in force at insertion time. It is deleted on consumption and
-expires after 60 seconds regardless.
+expires after 60 seconds regardless. Batch mode accumulates several codes into one
+handoff so the whole stack is typed on return.
 
 ## The post-processing pipeline
 
@@ -203,28 +211,16 @@ silently reset to Off.
 ## Memory budget (read before touching the keyboard target)
 
 iOS gives a keyboard extension roughly **60-70 MB** before jetsam kills it. A kill looks
-to the user like the keyboard "crashing" back to the system keyboard mid-transaction, so
-the budget is a hard design constraint, not a guideline.
+to the user like the keyboard "crashing" back to the system keyboard mid-transaction.
 
-What the code does to stay well under it, and what you must not undo:
+Since the camera moved out of the extension this stopped being a live risk — the keyboard
+now does nothing but draw four buttons, read UserDefaults, and call `insertText`. But the
+ceiling still applies, so:
 
-- **`.vga640x480` session preset.** Plenty for a 1D barcode at arm's length, and roughly
-  half the footprint of 720p.
-- **`AVCaptureMetadataOutput` only.** There is no `AVCaptureVideoDataOutput`, so no
-  sample buffer is ever handed to our code and no frame is ever retained.
-- **Full teardown on hide.** `CameraController.stop()` removes inputs and outputs and
-  releases the preview layer — it does not merely pause. It is called on
-  `viewWillDisappear`, on Cancel, and after a non-batch insert.
-- **No Vision in the extension.** The Vision symbology bridge lives in
-  `GiftKey/VisionSymbology.swift`, app-side only. Every framework the extension links
-  costs memory.
-- **`didReceiveMemoryWarning` stops the camera** and shows a message rather than waiting
-  to be killed.
-
-If you add anything to `Shared/`, remember it is compiled into the keyboard too. Keep
-that folder free of heavy frameworks.
-
-Section 12 of `TEST_PLAN.md` covers verifying this on device.
+- **Keep `Shared/` light.** Everything in it is compiled into the keyboard as well as the
+  app. `GiftKey/VisionSymbology.swift` lives app-side precisely so the extension never
+  links Vision.
+- **Do not add frameworks to the extension target** without checking what they cost.
 
 ## App Store submission
 
@@ -259,10 +255,11 @@ anyway; it is a two-line page and it heads off questions.
 > directly into a point-of-sale field.
 >
 > **Why Full Access (RequestsOpenAccess) is required:**
-> 1. iOS does not permit a keyboard extension to open the camera without Full Access, and
->    scanning is the app's entire function.
-> 2. The user's settings (validation filter, prefix/suffix, barcode types) are stored in
+> 1. The user's settings (validation filter, prefix/suffix, barcode types) are stored in
 >    a shared App Group container, which a keyboard cannot read without Full Access.
+> 2. The Scan key opens the containing app to use the camera, which a keyboard cannot do
+>    without Full Access. The keyboard extension itself never touches the camera — iOS
+>    does not permit that for any keyboard.
 >
 > GiftKey contains **no networking code of any kind** in either the app or the keyboard —
 > no analytics, no crash reporting, no advertising SDK, no third-party dependencies. It
@@ -303,10 +300,10 @@ search for this.)
 
 > **GiftKey turns your camera into a keyboard.**
 >
-> Tap into any text field, switch to the GiftKey keyboard, tap Scan, and point at a
-> barcode. The code is typed straight into the field. It works in every app — your point
-> of sale, Notes, Safari, spreadsheets, ticketing systems, inventory tools, anything with
-> a text field.
+> Tap into any text field, switch to the GiftKey keyboard, and tap Scan. GiftKey opens
+> to the camera, you scan, and the code is typed straight into the field you came from.
+> It works in every app — your point of sale, Notes, Safari, spreadsheets, ticketing
+> systems, inventory tools, anything with a text field.
 >
 > Built for retail staff who scan gift cards, vouchers and product codes into a POS all
 > day and are tired of reading digits off a card and typing them by hand.
@@ -341,14 +338,17 @@ search for this.)
 > Keep the camera running and scan a whole stack. Separate codes with Return, Tab or a
 > comma and fill a spreadsheet column without touching the screen.
 >
-> **TWO WAYS TO SCAN**
-> Scan inside the keyboard without leaving the app you are in, or scan full screen in the
-> GiftKey app and have the code handed back to the keyboard. Use whichever is faster on
-> your iPhone.
+> **HOW IT WORKS**
+> Tap Scan and GiftKey opens to the camera. Scan the barcode, tap the back arrow at the
+> top left, and the code is typed into the field you were in. Two taps.
+>
+> iOS does not allow any keyboard to use the camera directly - that is an Apple
+> restriction, not a GiftKey limitation. Every camera-based scanner keyboard works this
+> way.
 >
 > **ABOUT FULL ACCESS**
-> iOS will not let a keyboard use the camera without Full Access, and GiftKey needs it to
-> read your settings. That is the whole reason. There is no networking code in GiftKey —
+> GiftKey needs it to read your settings and to open its own app to scan. That is the
+> whole reason. There is no networking code in GiftKey —
 > nothing can leave your device even in principle. The FAQ inside the app explains this
 > in plain language.
 
@@ -381,8 +381,8 @@ working. Terms worth covering across name, subtitle and keywords: *barcode keybo
 ## Known limitations
 
 - **Some numeric-only fields do not offer a keyboard switcher.** If a host app forces a
-  number pad with no globe key, no custom keyboard can be selected there. Path B (scan in
-  app, then paste) is the workaround. Worth testing per POS app.
+  number pad with no globe key, no custom keyboard can be selected there. Scanning in the
+  GiftKey app and pasting is the workaround. Worth testing per POS app.
 - **Opening the containing app from the keyboard** walks the responder chain to whatever
   implements `openURL:`. It uses only public API and is long-established practice, but it
   is not a documented, supported call. If a future iOS release breaks it, the user can

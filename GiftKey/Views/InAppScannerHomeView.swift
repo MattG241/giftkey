@@ -70,8 +70,8 @@ struct InAppScannerHomeView: View {
                     Text("Handoff mode")
                         .font(.headline)
                     Text(lastRaw == nil
-                         ? "Scan a code, then switch back to the app you were typing in and the GiftKey keyboard will type it for you."
-                         : "Code ready. Switch back to the app you were typing in - the GiftKey keyboard will type it as soon as it appears.")
+                         ? "Scan a code, then tap the back arrow at the top left of the screen. The GiftKey keyboard types it as soon as you land."
+                         : "Code ready. Tap the back arrow at the top left to return - GiftKey types it the moment the keyboard appears.")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -179,9 +179,15 @@ struct InAppScannerHomeView: View {
                                                 symbology: symbology,
                                                 config: settings.pipelineConfiguration)
 
-        // Always publish to the App Group. The keyboard consumes it once and it expires
-        // after 60 seconds, so an unused handoff cannot surprise anyone later.
-        ScanHandoffStore.write(raw: raw, symbology: symbology)
+        // Publish to the App Group for the keyboard to pick up. In batch mode codes
+        // accumulate so the whole stack is typed on return; otherwise each scan replaces
+        // the last. The keyboard consumes it once and it expires after 60 seconds, so an
+        // unused handoff cannot surprise anyone later.
+        if settings.batchMode {
+            ScanHandoffStore.append(raw: raw, symbology: symbology)
+        } else {
+            ScanHandoffStore.write(raw: raw, symbology: symbology)
+        }
 
         Feedback.success(beep: settings.beepOnScan, haptic: settings.hapticOnScan)
 

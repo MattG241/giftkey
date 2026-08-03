@@ -76,14 +76,19 @@ struct FAQView: View {
             """
         ),
         Entry(
-            question: "In keyboard or in app - which should I use?",
+            question: "Why does it open the GiftKey app to scan?",
             answer: """
-            "In keyboard" is faster: you never leave the POS app. Use it if it feels \
-            smooth on your iPhone.
+            Because iOS does not allow a keyboard to use the camera. Apple is explicit \
+            about it: the camera is unavailable to keyboard extensions, and the only \
+            extension type that can use it is an iMessage app.
 
-            "In app" opens GiftKey, scans full screen, then hands the code back. It is \
-            better on older iPhones where the small in-keyboard preview is sluggish, and \
-            it is the automatic fallback if the in-keyboard camera cannot start.
+            So GiftKey opens, scans full screen, and hands the code straight back to the \
+            keyboard. Every camera-based scanner keyboard on iOS works this way. The ones \
+            that appear to scan in place are paired with a Bluetooth laser scanner rather \
+            than using the camera.
+
+            In practice it is two extra taps: tap Scan, scan the barcode, then tap the \
+            back arrow at the top left. The code is typed the moment you land.
             """
         ),
         Entry(

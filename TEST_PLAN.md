@@ -4,6 +4,9 @@ Run the whole list on a real device before every App Store submission. The Simul
 has no camera, so it can only verify layout, settings persistence and the rejection
 path — everything marked **device** must be run on hardware.
 
+Note the flow throughout: the keyboard has no camera (iOS forbids it), so scanning always
+means tap Scan → GiftKey opens → scan → tap the back breadcrumb → code is typed.
+
 Record the device, iOS version and build number at the top of each run.
 
 ```
@@ -28,8 +31,11 @@ Tester / date: ____________________
 
 ## 2. Core scan into a text field — **device**
 
-- [ ] **Notes.** Focus a note, switch to GiftKey, tap Scan, scan a Code 128 barcode.
-      Digits appear in the note. Camera stops and the keyboard returns to the Scan button.
+The flow under test is: tap Scan → GiftKey opens to the camera → scan → tap the
+**← Back to <app>** breadcrumb iOS puts in the status bar → code is typed.
+
+- [ ] **Notes.** Focus a note, switch to GiftKey, tap Scan. GiftKey opens to the camera.
+      Scan a Code 128 barcode, tap the back breadcrumb. Digits appear in the note.
 - [ ] **Safari.** Same, into a search field. Nothing is submitted automatically.
 - [ ] **POS-style numeric field.** Use Shopify POS > gift card > *Enter manually*, or any
       field with `keyboardType = .numberPad`.
@@ -53,20 +59,17 @@ Tester / date: ____________________
 ## 4. Camera permission denied — **device**
 
 - [ ] Settings > GiftKey > Camera **off**.
-- [ ] In-keyboard: tap Scan. A red message points at Settings; the keyboard shakes; no
-      crash, no frozen black preview.
-- [ ] In-app: open the Scan tab and tap Scan. The permission screen appears with a
-      working **Open Settings** button.
-- [ ] Re-enable camera access — both paths work again.
+- [ ] Tap Scan in the keyboard. GiftKey opens and shows the permission screen with a
+      working **Open Settings** button — not a black rectangle.
+- [ ] Re-enable camera access — scanning works again.
 
 ## 5. Low light and torch — **device**
 
-- [ ] In a dim room, in-keyboard scanning, tap the torch button.
+- [ ] In a dim room, in the GiftKey app's scanner, tap the torch button.
 - [ ] Torch turns on, icon turns yellow, barcode decodes.
-- [ ] Tap Cancel. **Torch turns off immediately.** *(A torch left on after dismissal is a
+- [ ] Tap Close. **Torch turns off immediately.** *(A torch left on after dismissal is a
       one-star review.)*
-- [ ] Switch away from the keyboard mid-scan (Home, or switch keyboards). Torch is off.
-- [ ] Same checks in the in-app full-screen scanner.
+- [ ] Background the app mid-scan. Torch is off.
 
 ## 6. Focus
 
@@ -108,78 +111,60 @@ real scan.
 
 - [ ] Enable Batch mode, separator **Tab**.
 - [ ] Open a spreadsheet app (Numbers) and focus a cell.
-- [ ] Scan five different barcodes without leaving the keyboard.
-- [ ] All five land, each in its own cell, and the on-screen counter reads `5 scanned`.
-- [ ] Camera stays live between scans; a green flash confirms each one.
-- [ ] Tap Cancel to stop. Counter resets on the next batch run.
+- [ ] Tap Scan. In GiftKey's scanner, scan five different barcodes without closing it —
+      the camera stays live and the counter climbs to `5 scanned`.
+- [ ] Tap Close, then the back breadcrumb.
+- [ ] All five land, each in its own cell, separated by tabs.
 - [ ] Repeat with separator **Return** into Notes — one code per line.
 
-## 10. Path B — scan in app
+## 10. Round trip
 
-- [ ] Settings > Scan mode > **In app**.
-- [ ] In Notes, switch to GiftKey. The primary button reads **Scan in app**.
+- [ ] In Notes, switch to GiftKey. The primary button reads **Scan**.
 - [ ] Tap it — GiftKey opens straight into the full-screen scanner.
 - [ ] Scan a code. The Scan tab shows "Code ready" and the handoff banner.
 - [ ] Switch back to Notes. As soon as the GiftKey keyboard appears, the code is typed.
 - [ ] The code is typed **once only** — leave and re-enter the field; it does not repeat.
 - [ ] **Expiry.** Scan in app, wait more than 60 seconds, then return to the keyboard.
       Nothing is typed.
-- [ ] Post-processing and the validation filter apply to Path B results exactly as they
-      do to Path A.
+- [ ] Post-processing and the validation filter apply to the inserted code.
 - [ ] Copy-to-clipboard on the Scan tab puts the processed code on the clipboard.
 
-## 11. Path A failure fallback
+## 11. Memory — **device**
 
-Hard to force on healthy hardware. If you have a device where the in-keyboard camera
-cannot start:
+The keyboard no longer runs a camera, so the old jetsam risk is largely gone. Still worth
+a sanity pass:
 
-- [ ] The keyboard reports the failure and the **Scan in app** button appears.
-- [ ] The fallback stays visible for the rest of the session.
+- [ ] Open and dismiss the keyboard 30 times. It never flashes back to the system
+      keyboard (that would be a jetsam kill).
+- [ ] Do a round trip 20 times in a row. No slowdown, no missed insertions.
 
-## 12. Memory pressure — **device**
+## 12. Orientation
 
-The keyboard extension is killed by jetsam somewhere around 60-70 MB.
+- [ ] Keyboard lays out correctly in portrait and landscape; all four keys reachable.
+- [ ] Rotate the in-app scanner in both directions — the preview re-orients correctly and
+      is not stretched or sideways.
+- [ ] No layout constraint errors in the console.
 
-- [ ] Attach Xcode > Debug > Attach to Process > `GiftKeyKeyboard`.
-- [ ] Open the keyboard and start scanning. Watch the memory gauge.
-- [ ] Steady-state while scanning stays comfortably under 50 MB.
-- [ ] Start and cancel the scanner **20 times in a row**. Memory returns to the idle
-      baseline each time — no upward staircase (that would mean a session or preview
-      layer is being retained).
-- [ ] With the scanner running, open several heavy apps to trigger memory pressure. The
-      keyboard shows "Camera stopped to free memory" rather than disappearing.
-- [ ] The keyboard is never killed and re-created mid-scan (visible as the keyboard
-      flashing back to the system keyboard).
+## 13. Small screen — iPhone SE — **device**
 
-## 13. Orientation
-
-- [ ] Portrait: keyboard is taller while scanning; preview is usable; controls reachable.
-- [ ] Rotate to landscape **while scanning**. Preview re-orients correctly, is not
-      stretched or sideways, and the keyboard does not exceed 62% of the screen.
-- [ ] Rotate back. No layout constraint errors in the console.
-- [ ] Rotate the in-app full-screen scanner in both directions.
-
-## 14. Small screen — iPhone SE — **device**
-
-- [ ] All keyboard controls are visible and tappable in portrait.
-- [ ] Landscape scanning is still usable — the preview is short but the reticle fits.
+- [ ] All keyboard controls are visible and tappable in portrait and landscape.
 - [ ] Setup and Settings screens scroll without clipped text.
 
-## 15. Appearance
+## 14. Appearance
 
 - [ ] Light mode: keys are light on a grey keyboard background, text is legible.
 - [ ] Dark mode: keys are dark, the Scan button stays clearly the primary action.
 - [ ] Switch appearance while the keyboard is on screen — colours update without a
       restart.
 
-## 16. Feedback settings
+## 15. Feedback settings
 
 - [ ] Beep on scan **off** — a successful scan is silent, haptic still fires.
 - [ ] Haptic on scan **off** — no vibration, beep still plays.
 - [ ] Both off — insertion still works.
 - [ ] Rejection haptic is clearly different from the success haptic.
 
-## 17. Symbology toggles
+## 16. Symbology toggles
 
 - [ ] All types on by default on a fresh install.
 - [ ] Turn off QR. A QR code no longer decodes at all (not "decodes then rejects").
@@ -188,7 +173,7 @@ The keyboard extension is killed by jetsam somewhere around 60-70 MB.
 - [ ] Apply **gift card preset** — filter set to 8-20 digits, transforms cleared,
       symbologies reduced to the retail set.
 
-## 18. Privacy verification
+## 17. Privacy verification
 
 This is the app's headline claim, so verify it rather than trusting it.
 
@@ -200,7 +185,7 @@ This is the app's headline claim, so verify it rather than trusting it.
       zero connections attributed to GiftKey.
 - [ ] No third-party package dependencies in the project.
 
-## 19. Regression sweep before submission
+## 18. Regression sweep before submission
 
 - [ ] Delete the app, reinstall, and run sections 1 and 2 again from scratch.
 - [ ] Archive builds cleanly for a real device with no signing warnings.

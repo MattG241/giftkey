@@ -2,33 +2,43 @@
 //  ScanHandoff.swift
 //  Shared
 //
-//  Path B plumbing: the containing app scans, drops the result in the App Group, and
-//  the keyboard picks it up when it next becomes active.
+//  How a scan gets from the app to the keyboard.
 //
-//  The payload is deliberately tiny and short-lived. It is written to shared
-//  UserDefaults, expires after 60 seconds, and is cleared the moment the keyboard
-//  consumes it. Nothing is ever persisted beyond that window and nothing leaves the
-//  device.
+//  iOS does not permit a keyboard extension to use the camera - confirmed by Apple:
+//  "the camera is still not available to keyboard extensions. The only extension you can
+//  use the camera from is an iMessage Extension."
+//  (https://developer.apple.com/forums/thread/681975)
+//
+//  So the keyboard opens the containing app, the app scans, and the result comes back
+//  through the App Group. This is the same approach every camera-based keyboard wedge on
+//  iOS uses; there is no alternative.
+//
+//  The payload is deliberately tiny and short-lived: written to shared UserDefaults,
+//  expires after 60 seconds, and cleared the moment the keyboard consumes it. Nothing is
+//  persisted beyond that window and nothing leaves the device.
 //
 
 import Foundation
 
 struct ScanHandoff: Codable, Equatable {
 
-    /// Raw decoded string, before post-processing. Processing happens in the keyboard so
-    /// a settings change between scanning and inserting is honoured.
-    let raw: String
-    /// Symbology raw value, if the scanner reported one.
-    let symbologyRawValue: String?
-    /// When the scan happened.
-    let timestamp: Date
+    /// One scanned code, before post-processing. Processing happens in the keyboard so a
+    /// settings change between scanning and inserting is honoured.
+    struct Item: Codable, Equatable {
+        let raw: String
+        let symbologyRawValue: String?
 
-    var symbology: BarcodeSymbology? {
-        symbologyRawValue.flatMap(BarcodeSymbology.init(rawValue:))
+        var symbology: BarcodeSymbology? {
+            symbologyRawValue.flatMap(BarcodeSymbology.init(rawValue:))
+        }
     }
 
-    /// Handoffs older than this are ignored, so a stale scan from an hour ago can never
-    /// surprise a cashier by typing itself into the next field they touch.
+    /// Usually one. More than one when the user scanned a batch in the app.
+    let items: [Item]
+    let timestamp: Date
+
+    /// Handoffs older than this are ignored, so a stale scan can never surprise a
+    /// cashier by typing itself into the next field they touch.
     static let expiry: TimeInterval = 60
 
     var isFresh: Bool {
@@ -43,11 +53,22 @@ enum ScanHandoffStore {
 
     private static var defaults: UserDefaults { AppConstants.sharedDefaults }
 
-    /// Called by the containing app after a successful in-app scan.
+    /// Replaces any pending handoff with a single code.
     static func write(raw: String, symbology: BarcodeSymbology?) {
-        let handoff = ScanHandoff(raw: raw,
-                                  symbologyRawValue: symbology?.rawValue,
-                                  timestamp: Date())
+        write(items: [ScanHandoff.Item(raw: raw, symbologyRawValue: symbology?.rawValue)])
+    }
+
+    /// Adds a code to the pending handoff, for batch scanning in the app.
+    /// Starts a fresh handoff if the existing one has expired.
+    static func append(raw: String, symbology: BarcodeSymbology?) {
+        let item = ScanHandoff.Item(raw: raw, symbologyRawValue: symbology?.rawValue)
+        var items = peek()?.items ?? []
+        items.append(item)
+        write(items: items)
+    }
+
+    private static func write(items: [ScanHandoff.Item]) {
+        let handoff = ScanHandoff(items: items, timestamp: Date())
         guard let data = try? JSONEncoder().encode(handoff) else { return }
         defaults.set(data, forKey: key)
     }
@@ -58,7 +79,8 @@ enum ScanHandoffStore {
         guard let data = defaults.data(forKey: key) else { return nil }
         clear()
         guard let handoff = try? JSONDecoder().decode(ScanHandoff.self, from: data),
-              handoff.isFresh else { return nil }
+              handoff.isFresh,
+              !handoff.items.isEmpty else { return nil }
         return handoff
     }
 

@@ -38,7 +38,6 @@
 		EB0000000000000000000009 /* KeyboardPresence.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF0000000000000000000009 /* KeyboardPresence.swift */; };
 		EB0000000000000000000016 /* KeyboardViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF0000000000000000000016 /* KeyboardViewController.swift */; };
 		EB0000000000000000000017 /* KeyboardIdleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF0000000000000000000017 /* KeyboardIdleView.swift */; };
-		EB0000000000000000000018 /* KeyboardScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF0000000000000000000018 /* KeyboardScannerView.swift */; };
 		EB0000000000000000000019 /* KeyButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF0000000000000000000019 /* KeyButton.swift */; };
 /* End PBXBuildFile section */
 
@@ -90,7 +89,6 @@
 		FF0000000000000000000015 /* FAQView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FAQView.swift; sourceTree = "<group>"; };
 		FF0000000000000000000016 /* KeyboardViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardViewController.swift; sourceTree = "<group>"; };
 		FF0000000000000000000017 /* KeyboardIdleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardIdleView.swift; sourceTree = "<group>"; };
-		FF0000000000000000000018 /* KeyboardScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyboardScannerView.swift; sourceTree = "<group>"; };
 		FF0000000000000000000019 /* KeyButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyButton.swift; sourceTree = "<group>"; };
 		FF000000000000000000001A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		FF000000000000000000001B /* GiftKeyKeyboard.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = GiftKeyKeyboard.entitlements; sourceTree = "<group>"; };
@@ -174,7 +172,6 @@
 			children = (
 				FF0000000000000000000016 /* KeyboardViewController.swift */,
 				FF0000000000000000000017 /* KeyboardIdleView.swift */,
-				FF0000000000000000000018 /* KeyboardScannerView.swift */,
 				FF0000000000000000000019 /* KeyButton.swift */,
 				FF000000000000000000001A /* Info.plist */,
 				FF000000000000000000001B /* GiftKeyKeyboard.entitlements */,
@@ -326,7 +323,6 @@
 				EB0000000000000000000009 /* KeyboardPresence.swift in Sources */,
 				EB0000000000000000000016 /* KeyboardViewController.swift in Sources */,
 				EB0000000000000000000017 /* KeyboardIdleView.swift in Sources */,
-				EB0000000000000000000018 /* KeyboardScannerView.swift in Sources */,
 				EB0000000000000000000019 /* KeyButton.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

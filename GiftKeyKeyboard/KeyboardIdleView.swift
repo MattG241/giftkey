@@ -10,7 +10,6 @@ import UIKit
 
 protocol KeyboardIdleViewDelegate: AnyObject {
     func idleViewDidTapScan(_ view: KeyboardIdleView)
-    func idleViewDidTapScanInApp(_ view: KeyboardIdleView)
     func idleViewDidTapDelete(_ view: KeyboardIdleView)
     func idleViewDidTapReturn(_ view: KeyboardIdleView)
 }
@@ -20,7 +19,6 @@ final class KeyboardIdleView: UIView {
     weak var delegate: KeyboardIdleViewDelegate?
 
     private let scanButton: KeyButton
-    private let scanInAppButton: KeyButton
     private let globeButton: KeyButton
     private let deleteButton: KeyButton
     private let returnButton: KeyButton
@@ -28,7 +26,6 @@ final class KeyboardIdleView: UIView {
     private let hintLabel = UILabel()
 
     private let utilityRow = UIStackView()
-    private var scanInAppIsVisible = false
 
     /// The globe key is only legal to hide when the system says so.
     var showsGlobeKey: Bool = true {
@@ -36,13 +33,12 @@ final class KeyboardIdleView: UIView {
     }
 
     init(globeTarget: Any?, globeAction: Selector) {
+        // Opens the containing app to scan - iOS does not permit a camera inside a
+        // keyboard extension. See KeyboardViewController for the full explanation.
         scanButton = KeyButton(style: .primary,
                                title: "Scan",
                                systemImage: "barcode.viewfinder",
                                accessibilityLabel: "Scan barcode")
-        scanInAppButton = KeyButton(style: .standard,
-                                    title: "Scan in app",
-                                    systemImage: "arrow.up.forward.app")
         globeButton = KeyButton(style: .standard,
                                 systemImage: "globe",
                                 accessibilityLabel: "Next keyboard")
@@ -61,7 +57,6 @@ final class KeyboardIdleView: UIView {
         globeButton.addTarget(globeTarget, action: globeAction, for: .allTouchEvents)
 
         scanButton.addTarget(self, action: #selector(tapScan), for: .touchUpInside)
-        scanInAppButton.addTarget(self, action: #selector(tapScanInApp), for: .touchUpInside)
         // .primaryActionTriggered only. UIButton already raises it on touchUpInside, and
         // KeyButton's hold-to-repeat timer raises it too - registering for both would
         // delete two characters per tap.
@@ -88,9 +83,7 @@ final class KeyboardIdleView: UIView {
         hintLabel.textColor = .secondaryLabel
         hintLabel.textAlignment = .center
         hintLabel.numberOfLines = 1
-        hintLabel.text = "Open \(AppConstants.displayName) to change settings"
-
-        scanInAppButton.isHidden = true
+        hintLabel.text = "Opens \(AppConstants.displayName) to scan, then types it here"
 
         utilityRow.axis = .horizontal
         utilityRow.distribution = .fillEqually
@@ -100,7 +93,6 @@ final class KeyboardIdleView: UIView {
         let stack = UIStackView(arrangedSubviews: [
             statusLabel,
             scanButton,
-            scanInAppButton,
             utilityRow,
             hintLabel,
         ])
@@ -116,7 +108,6 @@ final class KeyboardIdleView: UIView {
             stack.bottomAnchor.constraint(equalTo: safeAreaLayoutGuide.bottomAnchor, constant: -6),
 
             utilityRow.heightAnchor.constraint(equalToConstant: 46),
-            scanInAppButton.heightAnchor.constraint(equalToConstant: 46),
         ])
 
         // The Scan button soaks up whatever vertical space is left.
@@ -125,21 +116,6 @@ final class KeyboardIdleView: UIView {
     }
 
     // MARK: - State
-
-    /// Shows or hides the Path B escape hatch.
-    func setScanInAppVisible(_ visible: Bool) {
-        scanInAppIsVisible = visible
-        scanInAppButton.isHidden = !visible
-    }
-
-    /// Swaps the primary button between Path A and Path B behaviour.
-    func setPrimaryAction(isInApp: Bool) {
-        var config = scanButton.configuration
-        config?.title = isInApp ? "Scan in app" : "Scan"
-        config?.image = UIImage(systemName: isInApp ? "arrow.up.forward.app" : "barcode.viewfinder")
-        scanButton.configuration = config
-        scanButton.accessibilityLabel = isInApp ? "Scan in app" : "Scan barcode"
-    }
 
     /// `nil` clears the line. Errors render in red.
     func setStatus(_ text: String?, isError: Bool) {
@@ -168,10 +144,6 @@ final class KeyboardIdleView: UIView {
 
     @objc private func tapScan() {
         delegate?.idleViewDidTapScan(self)
-    }
-
-    @objc private func tapScanInApp() {
-        delegate?.idleViewDidTapScanInApp(self)
     }
 
     @objc private func tapDelete() {

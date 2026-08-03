@@ -14,32 +14,6 @@ import Foundation
 
 // MARK: - Enums
 
-/// Which scan path the keyboard uses. Both paths are fully built.
-enum ScanMode: String, CaseIterable, Identifiable, Codable {
-    /// Path A - AVCaptureSession runs inside the keyboard extension.
-    case inKeyboard
-    /// Path B - the containing app scans and hands the result back via the App Group.
-    case inApp
-
-    var id: String { rawValue }
-
-    var displayName: String {
-        switch self {
-        case .inKeyboard: return "In keyboard"
-        case .inApp:      return "In app"
-        }
-    }
-
-    var explanation: String {
-        switch self {
-        case .inKeyboard:
-            return "Camera runs inside the keyboard. Fastest, stays in the POS app. Needs Full Access."
-        case .inApp:
-            return "Opens GiftKey to scan, then hands the code back to the keyboard. Better on older iPhones."
-        }
-    }
-}
-
 /// Keystroke appended after a successful insert.
 enum SuffixKeystroke: String, CaseIterable, Identifiable, Codable {
     case none
@@ -134,7 +108,6 @@ final class SettingsStore: ObservableObject {
     // MARK: Keys
 
     private enum Key {
-        static let scanMode            = "scanMode"
         static let enabledSymbologies  = "enabledSymbologies"
         static let stripCheckDigit     = "stripCheckDigit"
         static let gtinConversion      = "gtinConversion"
@@ -151,13 +124,11 @@ final class SettingsStore: ObservableObject {
         static let beepOnScan          = "beepOnScan"
         static let hapticOnScan        = "hapticOnScan"
         static let onboardingComplete  = "onboardingComplete"
-        static let showDiagnostics     = "showDiagnostics"
     }
 
     /// Defaults applied on first launch: every symbology on, nothing else transforming.
     private static func registerDefaults(in defaults: UserDefaults) {
         defaults.register(defaults: [
-            Key.scanMode: ScanMode.inKeyboard.rawValue,
             Key.enabledSymbologies: BarcodeSymbology.allCases.map(\.rawValue),
             Key.stripCheckDigit: false,
             Key.gtinConversion: GTINConversion.off.rawValue,
@@ -174,15 +145,7 @@ final class SettingsStore: ObservableObject {
             Key.beepOnScan: true,
             Key.hapticOnScan: true,
             Key.onboardingComplete: false,
-            Key.showDiagnostics: false,
         ])
-    }
-
-    // MARK: Scan mode
-
-    var scanMode: ScanMode {
-        get { ScanMode(rawValue: defaults.string(forKey: Key.scanMode) ?? "") ?? .inKeyboard }
-        set { write(newValue.rawValue, Key.scanMode) }
     }
 
     // MARK: Symbologies
@@ -312,16 +275,6 @@ final class SettingsStore: ObservableObject {
     var onboardingComplete: Bool {
         get { defaults.bool(forKey: Key.onboardingComplete) }
         set { write(newValue, Key.onboardingComplete) }
-    }
-
-    // MARK: Troubleshooting
-
-    /// Overlays live camera state on the in-keyboard preview. Off by default.
-    /// A keyboard extension cannot be attached to a debugger in the field, so this is
-    /// the only way to tell a dead session from a compositing problem.
-    var showDiagnostics: Bool {
-        get { defaults.bool(forKey: Key.showDiagnostics) }
-        set { write(newValue, Key.showDiagnostics) }
     }
 
     // MARK: Derived

@@ -4,13 +4,14 @@
 //
 //  Thin, memory-conscious wrapper around AVCaptureSession + AVCaptureMetadataOutput.
 //
-//  This is the Path A engine (camera running *inside* the keyboard extension) and is
-//  also used by the containing app whenever VisionKit's DataScannerViewController is
-//  unavailable on the device.
+//  Used by the containing app whenever VisionKit's DataScannerViewController is
+//  unavailable on the device (pre-A12 hardware).
 //
-//  Keyboard extensions get roughly 60-70 MB before jetsam kills them. The rules this
-//  class follows to stay well under that:
-//    - lowest usable session preset (.vga640x480, .hd1280x720 as an upper bound)
+//  This is NOT used by the keyboard extension. iOS does not permit a keyboard extension
+//  to use the camera at all - a session there configures correctly and then never runs.
+//  See KeyboardViewController for the full explanation.
+//
+//  Design rules kept from that era, still worth keeping:
 //    - metadata output only. No AVCaptureVideoDataOutput, so no sample buffers are ever
 //      handed to us and no frame is ever retained.
 //    - configure / start on a private serial queue, never on the main thread
@@ -19,9 +20,7 @@
 //
 
 import AVFoundation
-import CoreImage
 import Foundation
-import QuartzCore
 
 protocol CameraControllerDelegate: AnyObject {
     /// Called on the main queue after debouncing.
@@ -40,9 +39,7 @@ final class CameraController: NSObject {
         case permissionUndetermined
         case noCamera
         case configurationFailed
-        /// The session was built correctly but iOS never let it run. Seen inside the
-        /// keyboard extension, where the system can decline the camera to a process
-        /// running alongside a foreground host app.
+        /// The session was built correctly but iOS never let it run.
         case sessionWouldNotStart(reason: String?)
 
         var message: String {
@@ -59,16 +56,15 @@ final class CameraController: NSObject {
                 if let reason {
                     return "iOS would not start the camera here (\(reason))."
                 }
-                return "iOS would not start the camera inside the keyboard."
+                return "iOS would not start the camera."
             }
         }
     }
 
-    /// Quality preset. `.vga640x480` is plenty for 1D retail barcodes at arm's length
-    /// and roughly halves the session's memory footprint versus 720p.
+    /// Quality preset.
     enum Quality {
-        case low   // .vga640x480 - default, used in the keyboard
-        case high  // .hd1280x720 - used in the containing app where memory is not tight
+        case low   // .vga640x480
+        case high  // .hd1280x720 - used in the containing app
 
         var preset: AVCaptureSession.Preset {
             switch self {
@@ -78,30 +74,9 @@ final class CameraController: NSObject {
         }
     }
 
-    /// How the host wants the camera image delivered.
-    enum PreviewMode {
-        /// An `AVCaptureVideoPreviewLayer` the host adds to its view hierarchy.
-        /// Cheapest and smoothest - use it anywhere it actually renders.
-        case previewLayer
-
-        /// Individual frames delivered as `CGImage`, for the host to draw into an
-        /// ordinary `UIImageView`.
-        ///
-        /// Required inside the keyboard extension. Keyboards are hosted out-of-process
-        /// and their views composite through a remote view service; hosted media layers
-        /// such as AVCaptureVideoPreviewLayer frequently do not survive that boundary
-        /// and render solid black even though the session beneath them is running
-        /// perfectly. Drawing frames into a plain image view sidesteps it entirely.
-        ///
-        /// Costs more CPU and allocates a CGImage per delivered frame, so it is
-        /// throttled (see `previewFrameInterval`) and late frames are discarded.
-        case sampleBuffers
-    }
-
     weak var delegate: CameraControllerDelegate?
 
-    /// The layer the host view should display. Only produced in `.previewLayer` mode.
-    /// Created lazily, released on `stop()`.
+    /// The layer the host view should display. Created lazily, released on `stop()`.
     private(set) var previewLayer: AVCaptureVideoPreviewLayer?
 
     /// Called on the main queue the moment the preview layer exists.
@@ -112,43 +87,27 @@ final class CameraController: NSObject {
     /// `start()` would get nil and show a black rectangle forever.
     var onPreviewLayerReady: ((AVCaptureVideoPreviewLayer) -> Void)?
 
-    /// Delivered on the main queue in `.sampleBuffers` mode, throttled.
-    var onPreviewFrame: ((CGImage) -> Void)?
-
     private let session = AVCaptureSession()
     private let sessionQueue = DispatchQueue(label: "\(AppConstants.appBundleID).camera",
                                              qos: .userInitiated)
     private let metadataQueue = DispatchQueue(label: "\(AppConstants.appBundleID).metadata",
                                               qos: .userInitiated)
-    private let frameQueue = DispatchQueue(label: "\(AppConstants.appBundleID).frames",
-                                           qos: .userInitiated)
 
     private var device: AVCaptureDevice?
     private var isRunning = false
 
     private let quality: Quality
-    private let previewMode: PreviewMode
     private var objectTypes: [AVMetadataObject.ObjectType]
-
-    /// ~15 fps. Plenty for aiming at a barcode, and half the conversion work of 30.
-    private let previewFrameInterval: CFTimeInterval = 1.0 / 15.0
-    private var lastPreviewFrameTime: CFTimeInterval = 0
-
-    /// One context reused for every frame. Creating a CIContext per frame is the
-    /// classic way to blow a keyboard extension's memory budget.
-    private lazy var ciContext: CIContext = CIContext(options: [.useSoftwareRenderer: false])
 
     // MARK: - Diagnostics
     //
-    // Surfaced in the keyboard when Settings > Troubleshooting > Show diagnostics is on.
-    // Debugging an extension without Xcode attached is otherwise near impossible.
+    // Kept because they turned a mysterious black preview into a one-line diagnosis
+    // once already.
 
     private(set) var diagnosticInputCount = 0
     private(set) var diagnosticOutputCount = 0
-    private(set) var diagnosticFrameCount = 0
 
-    /// Why the session was interrupted, if it was. This is the answer to
-    /// "configured fine, in 1 out 2, but running N".
+    /// Why the session was interrupted, if it was.
     private(set) var lastInterruptionReason: String?
     private(set) var lastRuntimeError: String?
 
@@ -164,8 +123,7 @@ final class CameraController: NSObject {
         @unknown default:    auth = "?"
         }
         var summary = "\(auth) | running \(session.isRunning ? "Y" : "N") | "
-                    + "in \(diagnosticInputCount) out \(diagnosticOutputCount) | "
-                    + "frames \(diagnosticFrameCount)"
+                    + "in \(diagnosticInputCount) out \(diagnosticOutputCount)"
         if let lastInterruptionReason {
             summary += "\nINTERRUPTED: \(lastInterruptionReason)"
         }
@@ -229,10 +187,8 @@ final class CameraController: NSObject {
     var isPaused = false
 
     init(quality: Quality = .low,
-         previewMode: PreviewMode = .previewLayer,
          objectTypes: [AVMetadataObject.ObjectType] = []) {
         self.quality = quality
-        self.previewMode = previewMode
         self.objectTypes = objectTypes
         super.init()
     }
@@ -298,17 +254,13 @@ final class CameraController: NSObject {
 
         isRunning = true
         resetDebounce()
-        diagnosticFrameCount = 0
-        lastPreviewFrameTime = 0
 
-        if previewMode == .previewLayer {
-            // Create the preview layer on the main thread so the host can attach it
-            // immediately; the session behind it configures asynchronously.
-            let layer = AVCaptureVideoPreviewLayer(session: session)
-            layer.videoGravity = .resizeAspectFill
-            previewLayer = layer
-            onPreviewLayerReady?(layer)
-        }
+        // Create the preview layer on the main thread so the host can attach it
+        // immediately; the session behind it configures asynchronously.
+        let layer = AVCaptureVideoPreviewLayer(session: session)
+        layer.videoGravity = .resizeAspectFill
+        previewLayer = layer
+        onPreviewLayerReady?(layer)
 
         lastInterruptionReason = nil
         lastRuntimeError = nil
@@ -330,7 +282,7 @@ final class CameraController: NSObject {
             // Watchdog. A session can configure perfectly - inputs and outputs all
             // attached - and still never run, because iOS declined it. Without this the
             // host sits on a black rectangle forever with no error to show the user.
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) { [weak self] in
+            DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) { [weak self] in
                 guard let self, self.isRunning, !self.session.isRunning else { return }
                 self.delegate?.cameraController(
                     self,
@@ -399,25 +351,6 @@ final class CameraController: NSObject {
         session.addOutput(metadata)
         metadata.setMetadataObjectsDelegate(self, queue: metadataQueue)
         metadata.metadataObjectTypes = supportedTypes(from: objectTypes, on: metadata)
-
-        // Preview frames, only where the host cannot use a preview layer.
-        if previewMode == .sampleBuffers {
-            let video = AVCaptureVideoDataOutput()
-            video.videoSettings = [
-                kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA
-            ]
-            // Never queue up frames. If conversion falls behind, drop rather than
-            // accumulate - a backlog of VGA buffers is exactly how an extension dies.
-            video.alwaysDiscardsLateVideoFrames = true
-            if session.canAddOutput(video) {
-                session.addOutput(video)
-                video.setSampleBufferDelegate(self, queue: frameQueue)
-                if let connection = video.connection(with: .video),
-                   connection.isVideoOrientationSupported {
-                    connection.videoOrientation = .portrait
-                }
-            }
-        }
 
         configureContinuousAutofocus(on: camera)
 
@@ -520,36 +453,6 @@ final class CameraController: NSObject {
         guard let previous = lastValue, let date = lastValueDate else { return true }
         guard previous == value else { return true }
         return Date().timeIntervalSince(date) > debounceInterval
-    }
-}
-
-// MARK: - AVCaptureVideoDataOutputSampleBufferDelegate
-
-extension CameraController: AVCaptureVideoDataOutputSampleBufferDelegate {
-
-    func captureOutput(_ output: AVCaptureOutput,
-                       didOutput sampleBuffer: CMSampleBuffer,
-                       from connection: AVCaptureConnection) {
-        // Throttle before doing any work.
-        let now = CACurrentMediaTime()
-        guard now - lastPreviewFrameTime >= previewFrameInterval else { return }
-        lastPreviewFrameTime = now
-
-        guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
-
-        // The CIImage borrows the pixel buffer; createCGImage copies out of it. Nothing
-        // here outlives this call, so no frame is ever retained.
-        let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
-        guard let cgImage = ciContext.createCGImage(ciImage, from: ciImage.extent) else {
-            return
-        }
-
-        diagnosticFrameCount += 1
-
-        DispatchQueue.main.async { [weak self] in
-            guard let self, self.isRunning, !self.isPaused else { return }
-            self.onPreviewFrame?(cgImage)
-        }
     }
 }
 

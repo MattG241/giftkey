@@ -4,47 +4,36 @@
 //
 //  The keyboard extension's principal class.
 //
-//  Responsibilities:
-//    - own the two child views (idle / scanning) and switch between them
-//    - own the CameraController and guarantee it is torn down whenever the scanner is
-//      not visible (memory ceiling is ~60-70 MB for a keyboard extension)
-//    - run decoded values through ScanPostProcessor and type the result via
-//      textDocumentProxy
-//    - Path B: launch the containing app and consume the App Group handoff on return
-//    - degrade gracefully when Full Access is off or camera permission is denied
+//  WHY THERE IS NO CAMERA IN HERE
+//  ------------------------------
+//  iOS does not allow a keyboard extension to use the camera. This is not a permission
+//  or a Full Access gate - it is a platform restriction. Apple, on the developer forums:
+//
+//      "the camera is still not available to keyboard extensions. The only extension
+//       you can use the camera from is an iMessage Extension."
+//       https://developer.apple.com/forums/thread/681975
+//
+//  An AVCaptureSession here configures perfectly and then simply never runs, which
+//  presents as a black preview. Every camera-based keyboard wedge on iOS works the same
+//  way this one does: the keyboard opens its containing app, the app scans, and the
+//  result comes back through the App Group. (The keyboard wedges that appear to scan
+//  in place - Cognex, Honeywell, CodeCorp - are paired with Bluetooth hardware scanners,
+//  not a camera.)
+//
+//  So this class is deliberately small. It types, it deletes, it opens the app, and it
+//  picks up the result. No capture session, no preview, no frame handling - which also
+//  means the ~60-70 MB extension memory ceiling stops being a design constraint.
 //
 
-import AVFoundation
 import UIKit
 
 final class KeyboardViewController: UIInputViewController {
 
-    // MARK: - State
-
-    private enum Mode {
-        case idle
-        case scanning
-    }
-
-    private var mode: Mode = .idle
-
     private let settings = SettingsStore()
-    private var camera: CameraController?
 
     private var idleView: KeyboardIdleView!
-    private var scannerView: KeyboardScannerView!
-
     private var heightConstraint: NSLayoutConstraint?
-
-    /// Set when the in-keyboard camera fails on this device, which surfaces the
-    /// "Scan in app" fallback permanently for the session.
-    private var pathAFailed = false
-
-    /// Number of codes inserted during the current batch run.
-    private var batchCount = 0
-
     private var statusResetWorkItem: DispatchWorkItem?
-    private var diagnosticsTimer: Timer?
 
     // MARK: - Lifecycle
 
@@ -65,64 +54,36 @@ final class KeyboardViewController: UIInputViewController {
         idleView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(idleView)
 
-        scannerView = KeyboardScannerView()
-        scannerView.delegate = self
-        scannerView.translatesAutoresizingMaskIntoConstraints = false
-        scannerView.isHidden = true
-        view.addSubview(scannerView)
-
         NSLayoutConstraint.activate([
             idleView.topAnchor.constraint(equalTo: view.topAnchor),
             idleView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             idleView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             idleView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-
-            scannerView.topAnchor.constraint(equalTo: view.topAnchor),
-            scannerView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            scannerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            scannerView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
         ])
     }
 
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
-        applyHeight(animated: false)
+        applyHeight()
         refreshIdleState()
     }
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        // A scan may have been produced by the containing app while we were away.
+        // A scan may have been produced by the app while we were away.
         consumePendingHandoffIfNeeded()
-    }
-
-    override func viewWillDisappear(_ animated: Bool) {
-        super.viewWillDisappear(animated)
-        // Never leave a capture session alive behind a hidden keyboard.
-        stopScanning(returningToIdle: true, animated: false)
     }
 
     override func viewWillTransition(to size: CGSize,
                                      with coordinator: UIViewControllerTransitionCoordinator) {
         super.viewWillTransition(to: size, with: coordinator)
-        coordinator.animate(alongsideTransition: { _ in
-            self.applyHeight(animated: false)
-        })
-    }
-
-    override func didReceiveMemoryWarning() {
-        super.didReceiveMemoryWarning()
-        // Under memory pressure the camera is the first thing to go. Better a message
-        // than a jetsam kill that looks to the user like the keyboard "crashed".
-        guard mode == .scanning else { return }
-        stopScanning(returningToIdle: true, animated: true)
-        showIdleStatus("Camera stopped to free memory. Tap Scan to retry.", isError: true)
+        coordinator.animate(alongsideTransition: { _ in self.applyHeight() })
     }
 
     override func textDidChange(_ textInput: UITextInput?) {
         super.textDidChange(textInput)
         // Also covers the case where the keyboard is already on screen when the user
-        // switches back from the containing app.
+        // switches back from the app.
         consumePendingHandoffIfNeeded()
     }
 
@@ -136,28 +97,13 @@ final class KeyboardViewController: UIInputViewController {
         }
     }
 
-    // MARK: - Height
-
-    /// Keyboards are free to pick their own height. We run a little taller than a
-    /// system keyboard while scanning so the preview is actually usable, and clamp to a
-    /// fraction of the screen so landscape on an iPhone SE stays sane.
-    private func applyHeight(animated: Bool) {
-        let screenHeight = view.window?.screen.bounds.height
-            ?? UIScreen.main.bounds.height
-        let screenWidth = view.window?.screen.bounds.width
-            ?? UIScreen.main.bounds.width
-        let isLandscape = screenWidth > screenHeight
-
-        let target: CGFloat
-        switch mode {
-        case .idle:
-            target = isLandscape ? 200 : 258
-        case .scanning:
-            target = isLandscape ? 240 : 380
-        }
-
-        // Never take more than 62% of the screen.
-        let clamped = min(target, screenHeight * 0.62)
+    /// Keyboards pick their own height. Without a camera preview to accommodate this can
+    /// stay close to a standard keyboard.
+    private func applyHeight() {
+        let screen = view.window?.screen.bounds ?? UIScreen.main.bounds
+        let isLandscape = screen.width > screen.height
+        let target: CGFloat = isLandscape ? 180 : 240
+        let clamped = min(target, screen.height * 0.55)
 
         if let constraint = heightConstraint {
             constraint.constant = clamped
@@ -169,25 +115,17 @@ final class KeyboardViewController: UIInputViewController {
             constraint.isActive = true
             heightConstraint = constraint
         }
-
-        guard animated else {
-            view.layoutIfNeeded()
-            return
-        }
-        UIView.animate(withDuration: 0.2) { self.view.layoutIfNeeded() }
+        view.layoutIfNeeded()
     }
 
     // MARK: - Idle state
 
     private func refreshIdleState() {
-        let isInAppMode = settings.scanMode == .inApp
         idleView.showsGlobeKey = needsInputModeSwitchKey
-        idleView.setPrimaryAction(isInApp: isInAppMode || pathAFailed)
-        idleView.setScanInAppVisible(!isInAppMode && pathAFailed)
 
-        if !hasFullAccess {
-            // Without Full Access the extension gets neither the camera nor the App
-            // Group, so there is nothing useful to do but explain the fix.
+        guard hasFullAccess else {
+            // Without Full Access the extension can reach neither the App Group nor the
+            // containing app, so there is nothing useful to do but explain the fix.
             idleView.setScanEnabled(false)
             idleView.setStatus("Full Access is off.\n\(AppConstants.fullAccessPath)", isError: true)
             return
@@ -195,18 +133,8 @@ final class KeyboardViewController: UIInputViewController {
 
         idleView.setScanEnabled(true)
 
-        switch CameraController.authorizationStatus {
-        case .denied, .restricted:
-            idleView.setStatus("Camera access is off. Settings > \(AppConstants.displayName) > Camera.",
-                               isError: true)
-        default:
-            let preset = settings.validationPreset
-            if preset.isActive {
-                idleView.setStatus("Filter: \(preset.name)", isError: false)
-            } else {
-                idleView.setStatus(nil, isError: false)
-            }
-        }
+        let preset = settings.validationPreset
+        idleView.setStatus(preset.isActive ? "Filter: \(preset.name)" : nil, isError: false)
     }
 
     private func showIdleStatus(_ text: String, isError: Bool, resetAfter seconds: TimeInterval = 3) {
@@ -218,98 +146,9 @@ final class KeyboardViewController: UIInputViewController {
         DispatchQueue.main.asyncAfter(deadline: .now() + seconds, execute: work)
     }
 
-    // MARK: - Path A: scanning inside the keyboard
+    // MARK: - Opening the app to scan
 
-    private func startScanning() {
-        guard hasFullAccess else {
-            idleView.shake()
-            refreshIdleState()
-            return
-        }
-
-        switch CameraController.authorizationStatus {
-        case .denied, .restricted:
-            idleView.shake()
-            showIdleStatus("Camera access is off. Enable it in Settings > \(AppConstants.displayName).",
-                           isError: true, resetAfter: 5)
-            return
-        default:
-            break
-        }
-
-        batchCount = 0
-        mode = .scanning
-        idleView.isHidden = true
-        scannerView.isHidden = false
-        scannerView.setMessage(nil, isError: false)
-        scannerView.setCounter(settings.batchMode ? 0 : nil)
-        applyHeight(animated: true)
-        Feedback.selection()
-
-        // .sampleBuffers, not .previewLayer. A keyboard renders out-of-process through a
-        // remote view service, and AVCaptureVideoPreviewLayer does not reliably
-        // composite across that boundary - the session runs correctly and the preview is
-        // solid black. Frames drawn into a UIImageView composite like any other content.
-        let controller = CameraController(quality: .low,
-                                          previewMode: .sampleBuffers,
-                                          objectTypes: settings.enabledMetadataObjectTypes)
-        controller.delegate = self
-        // Weak self: the closure is stored *on* the controller, so a strong capture
-        // would leak the capture session.
-        controller.onPreviewFrame = { [weak self] frame in
-            guard let self, self.mode == .scanning else { return }
-            self.scannerView.setPreviewImage(frame)
-        }
-        camera = controller
-        controller.start()
-        scannerView.setTorchOn(false, available: controller.isTorchAvailable)
-
-        startDiagnosticsIfEnabled()
-    }
-
-    /// Live camera state overlaid on the preview, when the user turns diagnostics on in
-    /// Settings. A keyboard extension cannot be debugged without Xcode attached, so
-    /// without this a black preview is indistinguishable from a dead session.
-    private func startDiagnosticsIfEnabled() {
-        diagnosticsTimer?.invalidate()
-        diagnosticsTimer = nil
-
-        guard settings.showDiagnostics else {
-            scannerView.setDiagnostics(nil)
-            return
-        }
-
-        let tick: (Timer?) -> Void = { [weak self] _ in
-            guard let self, let camera = self.camera else { return }
-            self.scannerView.setDiagnostics(camera.diagnosticSummary)
-        }
-        tick(nil)
-        diagnosticsTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true, block: tick)
-    }
-
-    private func stopScanning(returningToIdle: Bool, animated: Bool) {
-        guard mode == .scanning || camera != nil else { return }
-
-        diagnosticsTimer?.invalidate()
-        diagnosticsTimer = nil
-        scannerView.setDiagnostics(nil)
-
-        camera?.setTorch(on: false)
-        camera?.stop()
-        camera = nil
-        scannerView.detachPreviewLayer()
-
-        guard returningToIdle else { return }
-        mode = .idle
-        scannerView.isHidden = true
-        idleView.isHidden = false
-        applyHeight(animated: animated)
-        refreshIdleState()
-    }
-
-    // MARK: - Path B: scanning in the containing app
-
-    private func launchContainingAppScanner() {
+    private func launchScanner() {
         guard hasFullAccess else {
             idleView.shake()
             refreshIdleState()
@@ -317,14 +156,15 @@ final class KeyboardViewController: UIInputViewController {
         }
         guard openURLFromExtension(AppConstants.scanURL) else {
             showIdleStatus("Could not open \(AppConstants.displayName). Open it from the Home Screen and scan there.",
-                           isError: true, resetAfter: 5)
+                           isError: true, resetAfter: 6)
             return
         }
-        showIdleStatus("Scan in \(AppConstants.displayName), then come back here.", isError: false, resetAfter: 8)
+        showIdleStatus("Scan, then tap the back arrow at the top of the screen.",
+                       isError: false, resetAfter: 10)
     }
 
-    /// Keyboard extensions cannot call `UIApplication.shared.open` (it is unavailable in
-    /// app extensions) and `extensionContext.open` is not supported for the keyboard
+    /// Keyboard extensions cannot call `UIApplication.shared.open` (unavailable in app
+    /// extensions) and `extensionContext.open` is not supported for the keyboard
     /// extension point. Walking the responder chain to whoever implements `openURL:` is
     /// the long-standing workaround and uses only public API.
     @discardableResult
@@ -341,75 +181,44 @@ final class KeyboardViewController: UIInputViewController {
         return false
     }
 
-    /// Reads (and clears) any fresh scan the containing app left in the App Group.
+    // MARK: - Consuming the result
+
+    /// Reads (and clears) any fresh scan the app left in the App Group.
     ///
     /// No "already checked" flag is needed: `consume()` deletes the payload as it reads
-    /// it, so a given handoff can only ever be returned once, no matter how often this
-    /// is called. That also means a second Path B round trip works even if the keyboard
-    /// never went through a full disappear/appear cycle in between.
+    /// it, so a given handoff can only ever be returned once no matter how often this is
+    /// called. That also means a second round trip works even if the keyboard never went
+    /// through a full disappear/appear cycle in between.
     private func consumePendingHandoffIfNeeded() {
         guard hasFullAccess else { return }
         guard let handoff = ScanHandoffStore.consume() else { return }
-        handleDecoded(raw: handoff.raw, symbology: handoff.symbology, fromKeyboardCamera: false)
-    }
 
-    // MARK: - Decoding and insertion
+        let config = settings.pipelineConfiguration
+        var inserted = 0
+        var lastRejection: ScanRejection?
 
-    private func handleDecoded(raw: String,
-                               symbology: BarcodeSymbology?,
-                               fromKeyboardCamera: Bool) {
-        let outcome = ScanPostProcessor.process(raw: raw,
-                                                symbology: symbology,
-                                                config: settings.pipelineConfiguration)
+        for item in handoff.items {
+            switch ScanPostProcessor.process(raw: item.raw,
+                                             symbology: item.symbology,
+                                             config: config) {
+            case .accepted(_, let text):
+                textDocumentProxy.insertText(text)
+                inserted += 1
+            case .rejected(let rejection):
+                lastRejection = rejection
+            }
+        }
 
-        switch outcome {
-        case .accepted(_, let textToInsert):
-            insert(textToInsert, fromKeyboardCamera: fromKeyboardCamera)
+        if inserted > 0 {
+            Feedback.success(beep: settings.beepOnScan, haptic: settings.hapticOnScan)
+            let noun = inserted == 1 ? "code" : "codes"
+            showIdleStatus("Inserted \(inserted) \(noun)", isError: false, resetAfter: 2)
+        }
 
-        case .rejected(let rejection):
+        if let lastRejection, inserted == 0 {
             Feedback.rejection(beep: settings.beepOnScan, haptic: settings.hapticOnScan)
-            if fromKeyboardCamera {
-                scannerView.shake()
-                scannerView.setMessage(rejection.message, isError: true)
-                // Let the same code be re-read after the user repositions.
-                camera?.resetDebounce()
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
-                    guard self?.mode == .scanning else { return }
-                    self?.scannerView.setMessage(nil, isError: false)
-                }
-            } else {
-                idleView.shake()
-                showIdleStatus(rejection.message, isError: true, resetAfter: 4)
-            }
-        }
-    }
-
-    private func insert(_ text: String, fromKeyboardCamera: Bool) {
-        textDocumentProxy.insertText(text)
-        Feedback.success(beep: settings.beepOnScan, haptic: settings.hapticOnScan)
-
-        guard fromKeyboardCamera else {
-            showIdleStatus("Inserted", isError: false, resetAfter: 2)
-            return
-        }
-
-        // Freeze the preview during the confirmation flash so a second decode of the
-        // same barcode cannot slip through mid-animation.
-        camera?.isPaused = true
-
-        if settings.batchMode {
-            batchCount += 1
-            scannerView.setCounter(batchCount)
-            scannerView.flashSuccess { [weak self] in
-                guard let self, self.mode == .scanning else { return }
-                self.camera?.isPaused = false
-            }
-        } else {
-            scannerView.flashSuccess { [weak self] in
-                guard let self else { return }
-                self.stopScanning(returningToIdle: true, animated: true)
-                self.showIdleStatus("Inserted", isError: false, resetAfter: 2)
-            }
+            idleView.shake()
+            showIdleStatus(lastRejection.message, isError: true, resetAfter: 5)
         }
     }
 }
@@ -417,14 +226,11 @@ final class KeyboardViewController: UIInputViewController {
 // MARK: - Key click audio
 
 /// `UIDevice.playInputClick()` is silent unless the visible input view opts in. This is
-/// the sanctioned way for a custom keyboard to produce the standard key-click sound,
-/// and it still respects the user's system "Keyboard Clicks" setting.
+/// the sanctioned way for a custom keyboard to produce the standard key-click sound, and
+/// it still respects the user's system "Keyboard Clicks" setting.
 ///
-/// This is a retroactive conformance: we are declaring a UIKit type's conformance to a
-/// UIKit protocol, which Apple could in principle declare themselves one day. There is
-/// no alternative - the conformance has to be on the actual visible input view, which
-/// the system owns. `@retroactive` acknowledges it explicitly on Swift 6 toolchains and
-/// silences the warning; the `#if` keeps the file compiling on Swift 5 ones.
+/// A retroactive conformance, unavoidably: the conformance has to be on the actual
+/// visible input view, which the system owns.
 #if compiler(>=6.0)
 extension UIInputView: @retroactive UIInputViewAudioFeedback {
     public var enableInputClicksWhenVisible: Bool { true }
@@ -440,15 +246,7 @@ extension UIInputView: UIInputViewAudioFeedback {
 extension KeyboardViewController: KeyboardIdleViewDelegate {
 
     func idleViewDidTapScan(_ view: KeyboardIdleView) {
-        if settings.scanMode == .inApp || pathAFailed {
-            launchContainingAppScanner()
-        } else {
-            startScanning()
-        }
-    }
-
-    func idleViewDidTapScanInApp(_ view: KeyboardIdleView) {
-        launchContainingAppScanner()
+        launchScanner()
     }
 
     func idleViewDidTapDelete(_ view: KeyboardIdleView) {
@@ -457,60 +255,5 @@ extension KeyboardViewController: KeyboardIdleViewDelegate {
 
     func idleViewDidTapReturn(_ view: KeyboardIdleView) {
         textDocumentProxy.insertText("\n")
-    }
-}
-
-// MARK: - KeyboardScannerViewDelegate
-
-extension KeyboardViewController: KeyboardScannerViewDelegate {
-
-    func scannerViewDidTapCancel(_ view: KeyboardScannerView) {
-        Feedback.keyTap()
-        stopScanning(returningToIdle: true, animated: true)
-    }
-
-    func scannerViewDidTapTorch(_ view: KeyboardScannerView) {
-        guard let camera else { return }
-        camera.toggleTorch()
-        view.setTorchOn(camera.isTorchOn, available: camera.isTorchAvailable)
-    }
-
-    func scannerView(_ view: KeyboardScannerView, didTapToFocusAt point: CGPoint) {
-        camera?.focus(atPreviewPoint: point)
-    }
-}
-
-// MARK: - CameraControllerDelegate
-
-extension KeyboardViewController: CameraControllerDelegate {
-
-    func cameraController(_ controller: CameraController,
-                          didDecode value: String,
-                          symbology: BarcodeSymbology?) {
-        guard mode == .scanning else { return }
-        handleDecoded(raw: value, symbology: symbology, fromKeyboardCamera: true)
-    }
-
-    func cameraController(_ controller: CameraController,
-                          didFailWith failure: CameraController.Failure) {
-        // Path A is not viable here. Fall back to Path B for the rest of the session.
-        switch failure {
-        case .noCamera, .configurationFailed, .sessionWouldNotStart:
-            pathAFailed = true
-        case .permissionDenied, .permissionUndetermined:
-            break
-        }
-
-        stopScanning(returningToIdle: true, animated: true)
-
-        // When the camera cannot run in the keyboard at all, stop offering it. Flipping
-        // the stored preference means the user is not left tapping a button that will
-        // never work, on this device or on the next launch.
-        if case .sessionWouldNotStart = failure {
-            settings.scanMode = .inApp
-        }
-
-        let suffix = pathAFailed ? " Switched to Scan in app." : ""
-        showIdleStatus(failure.message + suffix, isError: true, resetAfter: 6)
     }
 }
