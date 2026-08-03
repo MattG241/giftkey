@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GiftKey — Privacy Policy &amp; Support</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --fg: #1a1c1f;
+    --muted: #5c636e;
+    --rule: #e3e6ea;
+    --accent: #1673e5;
+    --panel: #f5f7f9;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14161a;
+      --fg: #e8eaed;
+      --muted: #a2a9b4;
+      --rule: #2a2e35;
+      --accent: #4d95ff;
+      --panel: #1c1f25;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 0 1.25rem 5rem;
+    background: var(--bg);
+    color: var(--fg);
+    font: 16px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 44rem; margin: 0 auto; }
+  header {
+    display: flex; align-items: center; gap: 1rem;
+    padding: 3rem 0 1.5rem;
+  }
+  .mark {
+    width: 60px; height: 60px; border-radius: 14px; flex: none;
+    background: var(--accent); position: relative; overflow: hidden;
+  }
+  .mark i {
+    position: absolute; top: 18%; height: 64%; background: #fff; border-radius: 2px;
+  }
+  .mark i:nth-child(1) { left: 16%; width: 9%; }
+  .mark i:nth-child(2) { left: 31%; width: 5%; }
+  .mark i:nth-child(3) { left: 43%; width: 12%; }
+  .mark i:nth-child(4) { left: 62%; width: 6%; }
+  .mark i:nth-child(5) { left: 75%; width: 8%; }
+  .mark b {
+    position: absolute; left: 8%; right: 8%; top: 46%; height: 8%;
+    background: #ffb020; border-radius: 4px;
+  }
+  h1 { font-size: 1.6rem; margin: 0; letter-spacing: -0.01em; }
+  h1 span { display: block; font-size: 0.95rem; font-weight: 400; color: var(--muted); }
+  h2 {
+    font-size: 1.15rem; margin: 2.5rem 0 0.75rem;
+    padding-top: 1.5rem; border-top: 1px solid var(--rule);
+    letter-spacing: -0.01em;
+  }
+  h3 { font-size: 1rem; margin: 1.75rem 0 0.4rem; }
+  p, li { color: var(--fg); }
+  .lede {
+    background: var(--panel); border-radius: 12px; padding: 1.1rem 1.25rem;
+    margin: 1.5rem 0 0; font-size: 1.02rem;
+  }
+  .lede strong { color: var(--accent); }
+  ul { padding-left: 1.2rem; }
+  li { margin: 0.35rem 0; }
+  a { color: var(--accent); }
+  code {
+    background: var(--panel); padding: 0.12em 0.4em; border-radius: 5px;
+    font: 0.88em/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  footer {
+    margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--rule);
+    color: var(--muted); font-size: 0.88rem;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="mark"><i></i><i></i><i></i><i></i><i></i><b></b></div>
+    <h1>GiftKey
+      <span>Privacy policy and support</span>
+    </h1>
+  </header>
+
+  <p class="lede">
+    <strong>GiftKey collects no data whatsoever.</strong> Neither the app nor the
+    keyboard contains any networking code — not disabled, absent. Nothing you scan or
+    type can leave your device, because there is no code capable of sending it.
+  </p>
+
+  <h2 id="privacy">Privacy policy</h2>
+
+  <p>
+    Last updated: 3 August 2026. This policy covers the GiftKey iOS app and the GiftKey
+    keyboard extension bundled with it.
+  </p>
+
+  <h3>What is collected</h3>
+  <p>
+    Nothing. GiftKey has no analytics, no crash reporting, no advertising SDK, no
+    third-party dependencies of any kind, and no server. There is no account to create
+    and no data to collect. Its App Store privacy label is
+    <em>Data Not Collected</em>.
+  </p>
+
+  <h3>What GiftKey can see</h3>
+  <ul>
+    <li>
+      <strong>Camera.</strong> Used only to read a barcode. Frames are decoded on your
+      device by Apple's own frameworks, are never written to disk, never saved to your
+      photo library, and never transmitted.
+    </li>
+    <li>
+      <strong>The text field you are editing.</strong> GiftKey <em>writes</em> into it.
+      It never reads what is already there. It does not log keystrokes — it has no
+      letter keys to log.
+    </li>
+    <li>
+      <strong>Your settings.</strong> Your validation filter, prefix, suffix and barcode
+      type choices are stored in a private container on your device, shared between the
+      app and the keyboard so both agree. They never leave the device.
+    </li>
+  </ul>
+
+  <h3>Scanned codes</h3>
+  <p>
+    A scanned code exists in memory only long enough to be typed. The single exception is
+    "Scan in app" mode, where the code passes from the app to the keyboard through a
+    private on-device container. That handoff is deleted the moment the keyboard uses it,
+    and expires by itself after 60 seconds.
+  </p>
+
+  <h3>Why the keyboard asks for Full Access</h3>
+  <p>
+    Two mechanical reasons, and no others:
+  </p>
+  <ul>
+    <li>iOS will not let a keyboard extension open the camera without Full Access, and
+      scanning is the entire point of the app.</li>
+    <li>A keyboard without Full Access cannot read the shared container holding your
+      settings, so it would have no idea what you configured.</li>
+  </ul>
+  <p>
+    Full Access is a broad permission and it is reasonable to be wary of any keyboard
+    requesting it. The honest answer is that GiftKey cannot misuse it, because it has no
+    means of transmitting anything.
+  </p>
+
+  <h3>Children</h3>
+  <p>
+    GiftKey is rated 4+ and collects no data from anyone, of any age.
+  </p>
+
+  <h3>Changes</h3>
+  <p>
+    If GiftKey ever collects anything, this page will say so plainly before that version
+    ships, and the App Store privacy label will change to match.
+  </p>
+
+  <h2 id="support">Support</h2>
+
+  <h3>Setting it up</h3>
+  <ol>
+    <li>Settings &rsaquo; General &rsaquo; Keyboard &rsaquo; Keyboards &rsaquo; Add New
+      Keyboard &rsaquo; GiftKey</li>
+    <li>Tap GiftKey in that list and turn on <strong>Allow Full Access</strong></li>
+    <li>In any app, tap a text field, press the globe key until GiftKey appears, then
+      tap <strong>Scan</strong></li>
+  </ol>
+
+  <h3>Common problems</h3>
+
+  <p><strong>Nothing happens when I tap Scan.</strong> Check, in order: Full Access is on
+  for GiftKey; camera access is allowed in Settings &rsaquo; GiftKey &rsaquo; Camera; and
+  the barcode type you are scanning is enabled in GiftKey &rsaquo; Settings &rsaquo;
+  Barcode types.</p>
+
+  <p><strong>A code was rejected and nothing was typed.</strong> A validation filter is on
+  and the code did not match it. The built-in "Gift card (8-20 digits)" filter only
+  accepts 8 to 20 digits — that is deliberate, so a product barcode cannot land in a gift
+  card field. Change or turn it off in Settings.</p>
+
+  <p><strong>My settings do not seem to apply.</strong> Full Access is off. Without it the
+  keyboard cannot read your settings.</p>
+
+  <p><strong>The keyboard feels sluggish on my iPhone.</strong> Switch Settings &rsaquo;
+  Scan mode to <strong>In app</strong>. GiftKey opens full screen to scan, then hands the
+  code back to the keyboard. It is the better mode on older devices.</p>
+
+  <p><strong>I cannot switch to GiftKey in a numeric field.</strong> Some apps force a
+  number pad with no keyboard switcher. No custom keyboard can be selected there. Use
+  "Scan in app" mode and paste instead.</p>
+
+  <h3>Contact</h3>
+  <p>
+    Email <a href="mailto:REPLACE_WITH_YOUR_EMAIL">REPLACE_WITH_YOUR_EMAIL</a>.
+    Include your iPhone model, iOS version, and the app you were scanning into.
+  </p>
+
+  <footer>
+    GiftKey is free. No subscription, no in-app purchases, no scan limits, no ads,
+    no account.
+  </footer>
+
+</div>
+</body>
+</html>
