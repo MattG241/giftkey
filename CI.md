@@ -237,6 +237,16 @@ notes template from the README, and hit Submit.
 **"Cannot save Signing Certificates without certificate private key"** — see step 5b.
 Apple never stores private keys, so a certificate created elsewhere cannot be used here.
 
+**"Provisioning profile ... doesn't include the App Groups capability"** — the App Group
+is not enabled on the App ID. Note that this is *two* steps on the portal, and the second
+is easy to miss: tick **App Groups** in the capabilities list, then click **Edit** next to
+it and select `group.com.mattgroves.giftkey`. Ticking the box alone assigns nothing.
+Do it for **both** App IDs.
+
+Then delete the existing profiles under **Profiles** — changing an App ID's capabilities
+invalidates them, and `fetch-signing-files` may otherwise reuse a stale one. They are
+regenerated on the next build by `--create`.
+
 **"No matching provisioning profile"** — the keyboard's App ID does not exist, or does
 not have App Groups enabled. Both App IDs need profiles; the `fetch-signing-files` step
 in the release workflow creates them with `--create`, but the *identifiers* must exist
