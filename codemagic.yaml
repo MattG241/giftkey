@@ -2,23 +2,24 @@
 #
 # Purpose: build, sign and ship an iOS app without owning a Mac.
 #
-# Two workflows, meant to be used in this order:
+# Three workflows:
 #
 #   1. compile-check   No signing, no upload, no Apple account needed. Builds for the
-#                      simulator purely to surface compile errors. Use this to grind
-#                      through the first round of build failures. Runs on every push.
+#                      simulator purely to surface compile errors. Runs on every push.
 #
-#   2. ios-release     Signs, archives, and uploads to TestFlight. Triggered by pushing
+#   2. screenshots     Manual only. Captures App Store screenshots from the Simulator.
+#
+#   3. ios-release     Signs, archives, and uploads to TestFlight. Triggered by pushing
 #                      a git tag like `v1.0.0`, so it never fires by accident.
 #
 # See CI.md for the one-time setup (App Store Connect API key, bundle IDs, App Group).
-
-definitions:
-  base_env: &base_env
-    xcode: latest
-    vars:
-      XCODE_PROJECT: "GiftKey.xcodeproj"
-      XCODE_SCHEME: "GiftKey"
+#
+# NOTE ON THE REPEATED vars BLOCKS BELOW
+# A YAML anchor was used here originally and it was a trap: `<<: *anchor` does NOT
+# deep-merge, so any workflow that declared its own `vars:` silently replaced the
+# inherited ones wholesale, leaving XCODE_PROJECT and XCODE_SCHEME empty. That produced
+# `xcodebuild -project  -scheme ` and a baffling "'' is not a project file" error.
+# The duplication below is deliberate: explicit beats clever for four short lines.
 
 workflows:
 
@@ -30,7 +31,10 @@ workflows:
     instance_type: mac_mini_m2
     max_build_duration: 30
     environment:
-      <<: *base_env
+      xcode: latest
+      vars:
+        XCODE_PROJECT: "GiftKey.xcodeproj"
+        XCODE_SCHEME: "GiftKey"
     triggering:
       events:
         - push
@@ -47,6 +51,8 @@ workflows:
           # pipefail is essential: without it the exit status of the pipeline is the
           # formatter's, so a failing xcodebuild would be reported as a GREEN build.
           set -o pipefail
+          : "${XCODE_PROJECT:?not set - check this workflow's vars block}"
+          : "${XCODE_SCHEME:?not set - check this workflow's vars block}"
 
           # Fall back to plain output if the log formatter is not on the image.
           if command -v xcbeautify >/dev/null 2>&1; then
@@ -99,8 +105,10 @@ workflows:
     instance_type: mac_mini_m2
     max_build_duration: 30
     environment:
-      <<: *base_env
+      xcode: latest
       vars:
+        XCODE_PROJECT: "GiftKey.xcodeproj"
+        XCODE_SCHEME: "GiftKey"
         BUNDLE_ID: "com.mattgroves.giftkey"
         # App Store Connect's 6.5" iPhone slot. The simulator's native resolution
         # differs slightly by device, so everything is normalised to this at the end.
@@ -112,6 +120,10 @@ workflows:
       - name: Build for simulator
         script: |
           set -o pipefail
+          # Fail loudly if a var is unset. An empty $XCODE_PROJECT yields
+          # `xcodebuild -project ` and the useless error "'' is not a project file".
+          : "${XCODE_PROJECT:?not set - check this workflow's vars block}"
+          : "${XCODE_SCHEME:?not set - check this workflow's vars block}"
           xcodebuild \
             -project "$XCODE_PROJECT" \
             -scheme "$XCODE_SCHEME" \
@@ -226,8 +238,10 @@ workflows:
       app_store_connect: GiftKey ASC Key
 
     environment:
-      <<: *base_env
+      xcode: latest
       vars:
+        XCODE_PROJECT: "GiftKey.xcodeproj"
+        XCODE_SCHEME: "GiftKey"
         # Must match AppConstants.swift and both entitlements files.
         BUNDLE_ID: "com.mattgroves.giftkey"
         KEYBOARD_BUNDLE_ID: "com.mattgroves.giftkey.keyboard"
@@ -277,6 +291,8 @@ workflows:
 
       - name: Build and archive
         script: |
+          : "${XCODE_PROJECT:?not set - check this workflow's vars block}"
+          : "${XCODE_SCHEME:?not set - check this workflow's vars block}"
           xcode-project build-ipa \
             --project "$XCODE_PROJECT" \
             --scheme "$XCODE_SCHEME" \
