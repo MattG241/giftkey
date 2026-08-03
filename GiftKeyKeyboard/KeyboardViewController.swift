@@ -154,31 +154,65 @@ final class KeyboardViewController: UIInputViewController {
             refreshIdleState()
             return
         }
-        guard openURLFromExtension(AppConstants.scanURL) else {
-            showIdleStatus("Could not open \(AppConstants.displayName). Open it from the Home Screen and scan there.",
-                           isError: true, resetAfter: 6)
+        let result = openContainingApp(AppConstants.scanURL)
+        guard result.opened else {
+            idleView.shake()
+            showIdleStatus("Could not open \(AppConstants.displayName) from here. Open it from the Home Screen, scan, then come back.",
+                           isError: true, resetAfter: 8)
             return
         }
-        showIdleStatus("Scan, then tap the back arrow at the top of the screen.",
-                       isError: false, resetAfter: 10)
+
+        // The mechanism is named so that "I tapped Scan and nothing happened" is
+        // diagnosable without attaching a debugger to an extension in the field.
+        showIdleStatus("Opening \(AppConstants.displayName)… (\(result.mechanism))\nScan, then tap the back arrow at the top left.",
+                       isError: false, resetAfter: 12)
     }
 
-    /// Keyboard extensions cannot call `UIApplication.shared.open` (unavailable in app
-    /// extensions) and `extensionContext.open` is not supported for the keyboard
-    /// extension point. Walking the responder chain to whoever implements `openURL:` is
-    /// the long-standing workaround and uses only public API.
-    @discardableResult
-    private func openURLFromExtension(_ url: URL) -> Bool {
-        let selector = NSSelectorFromString("openURL:")
+    /// Opens the containing app.
+    ///
+    /// There is no supported API for this from a keyboard extension:
+    /// `UIApplication.shared.open` is unavailable to app extensions at compile time, and
+    /// `NSExtensionContext.open` is documented only for certain other extension points.
+    /// So three mechanisms are tried in order, newest first. `mechanism` records which
+    /// one fired, purely so a failure can be diagnosed from the keyboard itself.
+    private func openContainingApp(_ url: URL) -> (opened: Bool, mechanism: String) {
+
+        // The modern selector. `openURL:` alone was deprecated in iOS 10 and cannot be
+        // relied on to still exist; this three-argument form is what UIApplication
+        // actually implements now.
+        let modern = NSSelectorFromString("openURL:options:completionHandler:")
+        let legacy = NSSelectorFromString("openURL:")
+
         var responder: UIResponder? = self
         while let current = responder {
-            if current.responds(to: selector) {
-                current.perform(selector, with: url)
-                return true
+            if let application = current as? UIApplication {
+                if application.responds(to: modern) {
+                    typealias OpenFn = @convention(c)
+                        (NSObject, Selector, NSURL, NSDictionary, Any?) -> Void
+                    let implementation = application.method(for: modern)
+                    let function = unsafeBitCast(implementation, to: OpenFn.self)
+                    function(application, modern, url as NSURL, NSDictionary(), nil)
+                    return (true, "app/modern")
+                }
+                if application.responds(to: legacy) {
+                    application.perform(legacy, with: url)
+                    return (true, "app/legacy")
+                }
+            } else if current.responds(to: legacy) {
+                current.perform(legacy, with: url)
+                return (true, "chain/legacy")
             }
             responder = current.next
         }
-        return false
+
+        // Last resort. Not documented as supported for keyboards, but harmless to try
+        // and it costs nothing when the responder chain has already failed.
+        if let context = extensionContext {
+            context.open(url, completionHandler: nil)
+            return (true, "extensionContext")
+        }
+
+        return (false, "none")
     }
 
     // MARK: - Consuming the result
