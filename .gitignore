@@ -20,8 +20,16 @@ GiftKey.xcodeproj/xcuserdata/
 .build/
 .swiftpm/
 
-## Fastlane / provisioning
+## Signing secrets - NEVER commit these
+## The .p8 App Store Connect key cannot be re-downloaded from Apple, and anyone
+## holding it can upload builds and manage the App Store listing.
+*.p8
+AuthKey_*.p8
 *.mobileprovision
 *.p12
+*.cer
+*.certSigningRequest
+
+## Fastlane
 fastlane/report.xml
 fastlane/screenshots
