@@ -390,9 +390,21 @@ final class KeyboardViewController: UIInputViewController {
 /// `UIDevice.playInputClick()` is silent unless the visible input view opts in. This is
 /// the sanctioned way for a custom keyboard to produce the standard key-click sound,
 /// and it still respects the user's system "Keyboard Clicks" setting.
+///
+/// This is a retroactive conformance: we are declaring a UIKit type's conformance to a
+/// UIKit protocol, which Apple could in principle declare themselves one day. There is
+/// no alternative - the conformance has to be on the actual visible input view, which
+/// the system owns. `@retroactive` acknowledges it explicitly on Swift 6 toolchains and
+/// silences the warning; the `#if` keeps the file compiling on Swift 5 ones.
+#if compiler(>=6.0)
+extension UIInputView: @retroactive UIInputViewAudioFeedback {
+    public var enableInputClicksWhenVisible: Bool { true }
+}
+#else
 extension UIInputView: UIInputViewAudioFeedback {
     public var enableInputClicksWhenVisible: Bool { true }
 }
+#endif
 
 // MARK: - KeyboardIdleViewDelegate
 

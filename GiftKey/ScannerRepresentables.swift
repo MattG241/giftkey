@@ -18,6 +18,10 @@
 import AVFoundation
 import SwiftUI
 import UIKit
+// Vision AND VisionKit: DataScannerViewController comes from VisionKit, but the
+// VNBarcodeSymbology values it is configured with come from Vision. VisionKit does not
+// re-export Vision, so both imports are required.
+import Vision
 import VisionKit
 
 // MARK: - Shared handle
