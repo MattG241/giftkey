@@ -255,6 +255,13 @@ workflows:
 
     environment:
       xcode: latest
+      # Encrypted variable group holding CERTIFICATE_PRIVATE_KEY - the RSA key the
+      # signing certificate is issued against. See CI.md > "Signing certificate".
+      # Apple never stores private keys, so a certificate created on some other machine
+      # is unusable here: without this, fetch-signing-files fails with
+      # "Cannot save Signing Certificates without certificate private key".
+      groups:
+        - signing
       vars:
         XCODE_PROJECT: "GiftKey.xcodeproj"
         XCODE_SCHEME: "GiftKey"
@@ -287,16 +294,29 @@ workflows:
 
       - name: Fetch signing files for BOTH bundle IDs
         script: |
+          set -e
+          : "${CERTIFICATE_PRIVATE_KEY:?not set - add it to the 'signing' variable group, see CI.md}"
+
+          keychain initialize
+
+          # --certificate-key is what makes this work. Apple stores certificates but
+          # never private keys, so any certificate created elsewhere cannot be used
+          # here. Passing our own key lets the CLI issue (or reuse) a certificate it
+          # can actually sign with.
+          #
           # A keyboard extension is a separate App ID and needs its own provisioning
           # profile. Fetching only the app's profile is the classic failure here.
-          app-store-connect fetch-signing-files "$BUNDLE_ID" \
-            --type IOS_APP_STORE --create
-          app-store-connect fetch-signing-files "$KEYBOARD_BUNDLE_ID" \
-            --type IOS_APP_STORE --create
+          for ID in "$BUNDLE_ID" "$KEYBOARD_BUNDLE_ID"; do
+            echo "Fetching signing files for $ID"
+            app-store-connect fetch-signing-files "$ID" \
+              --type IOS_APP_STORE \
+              --certificate-key="@env:CERTIFICATE_PRIVATE_KEY" \
+              --create
+          done
 
       - name: Add certificates to keychain
         script: |
-          keychain initialize
+          set -e
           keychain add-certificates
 
       - name: Apply profiles to the Xcode project

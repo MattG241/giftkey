@@ -103,6 +103,46 @@ GiftKey ASC Key
 That string is referenced in `codemagic.yaml` under `integrations:`. If you name it
 something else, change it in both places.
 
+### 5b. Signing certificate private key
+
+Apple stores signing **certificates** but never **private keys**. A certificate created
+on someone's Mac (or by another CI service) is therefore useless to Codemagic — it can
+download the certificate and still not be able to sign with it. The symptom is:
+
+```
+Cannot save Signing Certificates without certificate private key
+```
+
+The fix is to give Codemagic its own key and let it issue a certificate against that.
+
+**Generate a key** (once, ever — reuse it for every build and every future app):
+
+```bash
+openssl genrsa -out giftkey_cert_key.pem 2048
+```
+
+Keep it somewhere safe and **outside the repo**. `.gitignore` covers `*.pem`-adjacent
+secrets, but the simplest protection is not to put it in the working tree at all.
+
+**Add it to Codemagic:** Codemagic → your app → **Environment variables**
+
+| Field | Value |
+|---|---|
+| Variable name | `CERTIFICATE_PRIVATE_KEY` |
+| Value | the entire file contents, including the `-----BEGIN/END PRIVATE KEY-----` lines |
+| Group | `signing` |
+| Secure | **ticked** |
+
+The group name `signing` is referenced by `codemagic.yaml`. Get it wrong and the
+variable is simply absent, which the workflow now catches with a clear error rather
+than letting it fail deep inside the signing step.
+
+**Certificate limit:** Apple caps distribution certificates per account (2 for most
+individual accounts). If `--create` reports the maximum has been reached, revoke an
+unused one at Certificates, Identifiers & Profiles → Certificates. Revoking a
+certificate does **not** affect apps already on the App Store — only future builds
+signed with it.
+
 ### 6. Replace the placeholders — DONE
 
 Identifiers are already set throughout to the `com.mattgroves` prefix:
@@ -193,6 +233,9 @@ notes template from the README, and hit Submit.
 | Everything else | Free |
 
 ## Troubleshooting
+
+**"Cannot save Signing Certificates without certificate private key"** — see step 5b.
+Apple never stores private keys, so a certificate created elsewhere cannot be used here.
 
 **"No matching provisioning profile"** — the keyboard's App ID does not exist, or does
 not have App Groups enabled. Both App IDs need profiles; the `fetch-signing-files` step

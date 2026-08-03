@@ -24,6 +24,8 @@ GiftKey.xcodeproj/xcuserdata/
 ## The .p8 App Store Connect key cannot be re-downloaded from Apple, and anyone
 ## holding it can upload builds and manage the App Store listing.
 *.p8
+*.pem
+*.key
 AuthKey_*.p8
 *.mobileprovision
 *.p12
