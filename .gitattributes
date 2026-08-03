@@ -1,0 +1,17 @@
+# Force LF in the repository for everything text.
+#
+# This repo is authored on Windows and built on macOS. Without this, CRLF line endings
+# can leak into the repo and break shell scripts and build tooling on the CI machine.
+* text=auto eol=lf
+
+# Xcode project files: never let a merge tool guess.
+*.pbxproj    text eol=lf merge=union
+*.xcscheme   text eol=lf
+*.entitlements text eol=lf
+*.plist      text eol=lf
+
+# Binary assets.
+*.png        binary
+*.jpg        binary
+*.pdf        binary
+*.p8         binary

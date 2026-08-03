@@ -44,6 +44,17 @@ workflows:
 
       - name: Build app + keyboard extension for simulator
         script: |
+          # pipefail is essential: without it the exit status of the pipeline is the
+          # formatter's, so a failing xcodebuild would be reported as a GREEN build.
+          set -o pipefail
+
+          # Fall back to plain output if the log formatter is not on the image.
+          if command -v xcbeautify >/dev/null 2>&1; then
+            FORMATTER=xcbeautify
+          else
+            FORMATTER=cat
+          fi
+
           # Code signing is fully disabled: this workflow only answers the question
           # "does it compile?". Entitlements and bundle IDs are irrelevant here, so the
           # PLACEHOLDER values in the project do not need replacing yet.
@@ -57,7 +68,7 @@ workflows:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY="" \
             DEVELOPMENT_TEAM="" \
-            build 2>&1 | xcbeautify --renderer github-actions
+            build 2>&1 | $FORMATTER
 
     artifacts:
       - /tmp/xcodebuild_logs/*.log
