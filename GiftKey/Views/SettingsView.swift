@@ -28,6 +28,7 @@ struct SettingsView: View {
                 batchSection
                 feedbackSection
                 symbologySection
+                troubleshootingSection
                 resetSection
             }
             .navigationTitle("Settings")
@@ -276,6 +277,21 @@ struct SettingsView: View {
             Text("Barcode types")
         } footer: {
             Text("Turning off types you never use makes decoding faster and reduces misreads. At least one must stay on.")
+        }
+    }
+
+    // MARK: - Troubleshooting
+
+    private var troubleshootingSection: some View {
+        Section {
+            Toggle("Show diagnostics", isOn: Binding(
+                get: { settings.showDiagnostics },
+                set: { settings.showDiagnostics = $0 }
+            ))
+        } header: {
+            Text("Troubleshooting")
+        } footer: {
+            Text("Overlays live camera state on the keyboard's preview: permission, whether the session is running, and how many frames have arrived. Turn this on if the preview is black, then read the line at the top of the preview.")
         }
     }
 

@@ -23,6 +23,16 @@ final class KeyboardScannerView: UIView {
     weak var delegate: KeyboardScannerViewDelegate?
 
     private let previewContainer = UIView()
+
+    /// Frames are drawn here rather than into an AVCaptureVideoPreviewLayer.
+    ///
+    /// Keyboard extensions render out-of-process through a remote view service, and
+    /// hosted media layers (AVCaptureVideoPreviewLayer among them) often fail to
+    /// composite across that boundary - the session runs, the preview is solid black.
+    /// An ordinary UIImageView composites like any other view.
+    private let previewImageView = UIImageView()
+
+    private let diagnosticsLabel = UILabel()
     private let dimmingLayer = CAShapeLayer()
     private let reticleLayer = CAShapeLayer()
     private let successOverlay = UIView()
@@ -56,6 +66,12 @@ final class KeyboardScannerView: UIView {
         previewContainer.clipsToBounds = true
         previewContainer.translatesAutoresizingMaskIntoConstraints = false
         addSubview(previewContainer)
+
+        previewImageView.contentMode = .scaleAspectFill
+        previewImageView.clipsToBounds = true
+        previewImageView.backgroundColor = .black
+        previewImageView.translatesAutoresizingMaskIntoConstraints = false
+        previewContainer.addSubview(previewImageView)
 
         dimmingLayer.fillRule = .evenOdd
         dimmingLayer.fillColor = UIColor.black.withAlphaComponent(0.45).cgColor
@@ -106,7 +122,23 @@ final class KeyboardScannerView: UIView {
         controls.translatesAutoresizingMaskIntoConstraints = false
         addSubview(controls)
 
+        diagnosticsLabel.font = .monospacedSystemFont(ofSize: 9, weight: .regular)
+        diagnosticsLabel.textColor = .systemGreen
+        diagnosticsLabel.numberOfLines = 2
+        diagnosticsLabel.isHidden = true
+        diagnosticsLabel.translatesAutoresizingMaskIntoConstraints = false
+        previewContainer.addSubview(diagnosticsLabel)
+
         NSLayoutConstraint.activate([
+            previewImageView.topAnchor.constraint(equalTo: previewContainer.topAnchor),
+            previewImageView.bottomAnchor.constraint(equalTo: previewContainer.bottomAnchor),
+            previewImageView.leadingAnchor.constraint(equalTo: previewContainer.leadingAnchor),
+            previewImageView.trailingAnchor.constraint(equalTo: previewContainer.trailingAnchor),
+
+            diagnosticsLabel.topAnchor.constraint(equalTo: previewContainer.topAnchor, constant: 4),
+            diagnosticsLabel.leadingAnchor.constraint(equalTo: previewContainer.leadingAnchor, constant: 6),
+            diagnosticsLabel.trailingAnchor.constraint(equalTo: previewContainer.trailingAnchor, constant: -6),
+
             previewContainer.topAnchor.constraint(equalTo: safeAreaLayoutGuide.topAnchor, constant: 6),
             previewContainer.leadingAnchor.constraint(equalTo: safeAreaLayoutGuide.leadingAnchor, constant: 8),
             previewContainer.trailingAnchor.constraint(equalTo: safeAreaLayoutGuide.trailingAnchor, constant: -8),
@@ -218,6 +250,18 @@ final class KeyboardScannerView: UIView {
     func detachPreviewLayer() {
         previewLayer?.removeFromSuperlayer()
         previewLayer = nil
+        previewImageView.image = nil
+    }
+
+    /// Draws one camera frame. Called ~15x/second on the main queue.
+    func setPreviewImage(_ cgImage: CGImage) {
+        previewImageView.image = UIImage(cgImage: cgImage)
+    }
+
+    /// Live camera state, shown only when the user enables diagnostics in Settings.
+    func setDiagnostics(_ text: String?) {
+        diagnosticsLabel.text = text
+        diagnosticsLabel.isHidden = (text == nil)
     }
 
     // MARK: - State

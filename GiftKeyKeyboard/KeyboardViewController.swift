@@ -44,6 +44,7 @@ final class KeyboardViewController: UIInputViewController {
     private var batchCount = 0
 
     private var statusResetWorkItem: DispatchWorkItem?
+    private var diagnosticsTimer: Timer?
 
     // MARK: - Lifecycle
 
@@ -245,25 +246,53 @@ final class KeyboardViewController: UIInputViewController {
         applyHeight(animated: true)
         Feedback.selection()
 
+        // .sampleBuffers, not .previewLayer. A keyboard renders out-of-process through a
+        // remote view service, and AVCaptureVideoPreviewLayer does not reliably
+        // composite across that boundary - the session runs correctly and the preview is
+        // solid black. Frames drawn into a UIImageView composite like any other content.
         let controller = CameraController(quality: .low,
+                                          previewMode: .sampleBuffers,
                                           objectTypes: settings.enabledMetadataObjectTypes)
         controller.delegate = self
-        // Attach whenever the layer appears - which may be after an async permission
-        // prompt rather than synchronously inside start().
-        // Weak on both sides: the closure is stored *on* the controller, so a strong
-        // capture of either would leak the capture session.
-        controller.onPreviewLayerReady = { [weak self, weak controller] layer in
+        // Weak self: the closure is stored *on* the controller, so a strong capture
+        // would leak the capture session.
+        controller.onPreviewFrame = { [weak self] frame in
             guard let self, self.mode == .scanning else { return }
-            self.scannerView.attach(previewLayer: layer)
-            self.scannerView.setTorchOn(false,
-                                        available: controller?.isTorchAvailable ?? false)
+            self.scannerView.setPreviewImage(frame)
         }
         camera = controller
         controller.start()
+        scannerView.setTorchOn(false, available: controller.isTorchAvailable)
+
+        startDiagnosticsIfEnabled()
+    }
+
+    /// Live camera state overlaid on the preview, when the user turns diagnostics on in
+    /// Settings. A keyboard extension cannot be debugged without Xcode attached, so
+    /// without this a black preview is indistinguishable from a dead session.
+    private func startDiagnosticsIfEnabled() {
+        diagnosticsTimer?.invalidate()
+        diagnosticsTimer = nil
+
+        guard settings.showDiagnostics else {
+            scannerView.setDiagnostics(nil)
+            return
+        }
+
+        let tick: (Timer?) -> Void = { [weak self] _ in
+            guard let self, let camera = self.camera else { return }
+            self.scannerView.setDiagnostics(camera.diagnosticSummary)
+        }
+        tick(nil)
+        diagnosticsTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true, block: tick)
     }
 
     private func stopScanning(returningToIdle: Bool, animated: Bool) {
         guard mode == .scanning || camera != nil else { return }
+
+        diagnosticsTimer?.invalidate()
+        diagnosticsTimer = nil
+        scannerView.setDiagnostics(nil)
 
         camera?.setTorch(on: false)
         camera?.stop()

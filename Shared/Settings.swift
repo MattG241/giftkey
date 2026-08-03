@@ -151,6 +151,7 @@ final class SettingsStore: ObservableObject {
         static let beepOnScan          = "beepOnScan"
         static let hapticOnScan        = "hapticOnScan"
         static let onboardingComplete  = "onboardingComplete"
+        static let showDiagnostics     = "showDiagnostics"
     }
 
     /// Defaults applied on first launch: every symbology on, nothing else transforming.
@@ -173,6 +174,7 @@ final class SettingsStore: ObservableObject {
             Key.beepOnScan: true,
             Key.hapticOnScan: true,
             Key.onboardingComplete: false,
+            Key.showDiagnostics: false,
         ])
     }
 
@@ -310,6 +312,16 @@ final class SettingsStore: ObservableObject {
     var onboardingComplete: Bool {
         get { defaults.bool(forKey: Key.onboardingComplete) }
         set { write(newValue, Key.onboardingComplete) }
+    }
+
+    // MARK: Troubleshooting
+
+    /// Overlays live camera state on the in-keyboard preview. Off by default.
+    /// A keyboard extension cannot be attached to a debugger in the field, so this is
+    /// the only way to tell a dead session from a compositing problem.
+    var showDiagnostics: Bool {
+        get { defaults.bool(forKey: Key.showDiagnostics) }
+        set { write(newValue, Key.showDiagnostics) }
     }
 
     // MARK: Derived
