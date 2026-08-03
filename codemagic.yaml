@@ -76,7 +76,7 @@ workflows:
       email:
         recipients:
           # Build notifications.
-          - matthew@ryderwear.com.au
+          - mgroves5022@outlook.com
         notify:
           success: false   # only shout when it breaks
           failure: true
@@ -166,7 +166,7 @@ workflows:
       email:
         recipients:
           # Build notifications.
-          - matthew@ryderwear.com.au
+          - mgroves5022@outlook.com
         notify:
           success: true
           failure: true
