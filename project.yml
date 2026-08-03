@@ -7,16 +7,17 @@
 #   brew install xcodegen
 #   xcodegen generate
 #
-# PLACEHOLDERS TO CHANGE (see README > "Renaming / re-signing"):
-#   - bundleIdPrefix
-#   - DEVELOPMENT_TEAM
-#   - the App Group in both .entitlements files
-#   - AppConstants.swift
+# Identifiers are already set to com.mattgroves. Only DEVELOPMENT_TEAM below is a
+# placeholder, and Codemagic overwrites it at build time via `xcode-project use-profiles`.
+
+
+
+
 
 name: GiftKey
 
 options:
-  bundleIdPrefix: com.PLACEHOLDER
+  bundleIdPrefix: com.mattgroves
   deploymentTarget:
     iOS: "16.0"
   createIntermediateGroups: true
@@ -48,7 +49,7 @@ targets:
       - path: Shared
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.PLACEHOLDER.giftkey
+        PRODUCT_BUNDLE_IDENTIFIER: com.mattgroves.giftkey
         PRODUCT_NAME: GiftKey
         INFOPLIST_FILE: GiftKey/Info.plist
         CODE_SIGN_ENTITLEMENTS: GiftKey/GiftKey.entitlements
@@ -73,7 +74,7 @@ targets:
       - path: Shared
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.PLACEHOLDER.giftkey.keyboard
+        PRODUCT_BUNDLE_IDENTIFIER: com.mattgroves.giftkey.keyboard
         PRODUCT_NAME: GiftKeyKeyboard
         INFOPLIST_FILE: GiftKeyKeyboard/Info.plist
         CODE_SIGN_ENTITLEMENTS: GiftKeyKeyboard/GiftKeyKeyboard.entitlements

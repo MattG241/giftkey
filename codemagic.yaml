@@ -56,8 +56,8 @@ workflows:
           fi
 
           # Code signing is fully disabled: this workflow only answers the question
-          # "does it compile?". Entitlements and bundle IDs are irrelevant here, so the
-          # PLACEHOLDER values in the project do not need replacing yet.
+          # "does it compile?". Entitlements, bundle IDs and the team are all irrelevant
+          # here, which is why it runs without any Apple account set up.
           xcodebuild \
             -project "$XCODE_PROJECT" \
             -scheme "$XCODE_SCHEME" \
@@ -75,7 +75,7 @@ workflows:
     publishing:
       email:
         recipients:
-          # PLACEHOLDER: your address.
+          # Build notifications.
           - matthew@ryderwear.com.au
         notify:
           success: false   # only shout when it breaks
@@ -89,17 +89,17 @@ workflows:
     instance_type: mac_mini_m2
     max_build_duration: 60
 
-    # PLACEHOLDER: must match the integration name you create in
-    # Codemagic > Teams > Integrations > App Store Connect.
+    # This string must match the integration name you create in
+    # Codemagic > Teams > Integrations > App Store Connect, character for character.
     integrations:
       app_store_connect: GiftKey ASC Key
 
     environment:
       <<: *base_env
       vars:
-        # PLACEHOLDER: must match AppConstants.swift and the entitlements files.
-        BUNDLE_ID: "com.PLACEHOLDER.giftkey"
-        KEYBOARD_BUNDLE_ID: "com.PLACEHOLDER.giftkey.keyboard"
+        # Must match AppConstants.swift and both entitlements files.
+        BUNDLE_ID: "com.mattgroves.giftkey"
+        KEYBOARD_BUNDLE_ID: "com.mattgroves.giftkey.keyboard"
 
     # Only fires on a version tag, e.g. `git tag v1.0.0 && git push origin v1.0.0`.
     triggering:
@@ -165,7 +165,7 @@ workflows:
         submit_to_app_store: false
       email:
         recipients:
-          # PLACEHOLDER: your address.
+          # Build notifications.
           - matthew@ryderwear.com.au
         notify:
           success: true

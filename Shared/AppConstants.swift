@@ -18,9 +18,9 @@ enum AppConstants {
 
     // MARK: - Identifiers
 
-    /// Reverse-DNS prefix owned by your Apple Developer account.
-    /// PLACEHOLDER - replace with e.g. "au.com.ryderwear".
-    static let bundleIDPrefix = "com.PLACEHOLDER"
+    /// Reverse-DNS prefix for the Apple Developer account this ships under.
+    /// Permanent once the app is live on the App Store - do not change it.
+    static let bundleIDPrefix = "com.mattgroves"
 
     /// Containing app bundle identifier.
     static let appBundleID = "\(bundleIDPrefix).giftkey"
@@ -28,9 +28,9 @@ enum AppConstants {
     /// Keyboard extension bundle identifier. Must be prefixed by `appBundleID`.
     static let keyboardBundleID = "\(appBundleID).keyboard"
 
-    /// App Group shared by both targets. Must be registered on the developer portal.
-    /// PLACEHOLDER - replace the prefix to match `bundleIDPrefix`.
-    static let appGroupID = "group.com.PLACEHOLDER.giftkey"
+    /// App Group shared by both targets. Must be registered on the developer portal
+    /// AND enabled on both App IDs, or the keyboard reads empty settings.
+    static let appGroupID = "group.com.mattgroves.giftkey"
 
     // MARK: - URL scheme (Path B handoff)
 

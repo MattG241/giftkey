@@ -12,10 +12,25 @@ No Mac at any point. `codemagic.yaml` in the repo root drives it.
 
 ---
 
+## Progress
+
+| Step | Status |
+|---|---|
+| 1. Repo on GitHub | Done — `MattG241/giftkey`, private |
+| 2. Codemagic connected | Done |
+| 3. `compile-check` green | Done |
+| 4. Apple portal: App IDs + App Group | **Next** |
+| 5. ASC API key into Codemagic | **Next** |
+| 6. Replace placeholders | Done — prefix `com.mattgroves` |
+| 7. App icon | **Next — hard gate** |
+| 8. Tag → TestFlight | |
+| 9. Device testing | |
+| 10. Submit for review | |
+
 ## Order of operations
 
-Do these in order. Steps 1-3 need nothing from Apple, so start there and get the code
-compiling while you sort the rest.
+Steps 1-3 need nothing from Apple. Steps 4, 5 and 7 are the remaining blockers before a
+build can reach TestFlight.
 
 ### 1. Get the repo onto GitHub
 
@@ -59,12 +74,12 @@ You have the developer account, so this is portal work in a browser:
 
 | Identifier | Capabilities |
 |---|---|
-| `com.yourprefix.giftkey` | App Groups |
-| `com.yourprefix.giftkey.keyboard` | App Groups |
+| `com.mattgroves.giftkey` | App Groups |
+| `com.mattgroves.giftkey.keyboard` | App Groups |
 
 The keyboard's ID **must** be prefixed by the app's. This is enforced.
 
-**b. One App Group** — Identifiers > App Groups: `group.com.yourprefix.giftkey`.
+**b. One App Group** — Identifiers > App Groups: `group.com.mattgroves.giftkey`.
 Then go back into *both* App IDs and tick that group under the App Groups capability.
 Missing this on the keyboard is the single most common cause of "settings do nothing".
 
@@ -73,7 +88,7 @@ API > **+**. Give it **App Manager** access. Download the `.p8` **once** — App
 let you download it again. Note the Key ID and Issuer ID.
 
 **d. The app record** — App Store Connect > Apps > **+** > New App. Bundle ID
-`com.yourprefix.giftkey`, SKU anything, name and language as per the README metadata.
+`com.mattgroves.giftkey`, SKU anything, name and language as per the README metadata.
 
 ### 5. Give Codemagic the API key
 
@@ -88,21 +103,23 @@ GiftKey ASC Key
 That string is referenced in `codemagic.yaml` under `integrations:`. If you name it
 something else, change it in both places.
 
-### 6. Replace the placeholders
+### 6. Replace the placeholders — DONE
 
-Five files, per the table in `README.md` > *Renaming / re-signing*:
+Identifiers are already set throughout to the `com.mattgroves` prefix:
 
 - `Shared/AppConstants.swift` — `bundleIDPrefix`, `appGroupID`
 - `GiftKey/GiftKey.entitlements` — App Group
 - `GiftKeyKeyboard/GiftKeyKeyboard.entitlements` — App Group
-- `codemagic.yaml` — `BUNDLE_ID`, `KEYBOARD_BUNDLE_ID`, notification email
-- `GiftKey/Info.plist` — `CFBundleURLName` (cosmetic)
+- `codemagic.yaml` — `BUNDLE_ID`, `KEYBOARD_BUNDLE_ID`
+- `GiftKey/Info.plist` — `CFBundleURLName`
+- `project.yml`, `GiftKey.xcodeproj` — `PRODUCT_BUNDLE_IDENTIFIER` on both targets
 
-You do **not** need to touch `DEVELOPMENT_TEAM` in the project — `xcode-project
-use-profiles` rewrites it during the build.
+`DEVELOPMENT_TEAM` is intentionally still `PLACEHOLDERTEAMID` — `xcode-project
+use-profiles` rewrites it during the build. It only matters if you build locally in Xcode.
 
-The release workflow refuses to run while `PLACEHOLDER` is still present in the source,
-so a half-finished rename fails in 10 seconds instead of 10 minutes.
+The release workflow refuses to run if `PLACEHOLDER` reappears in `AppConstants.swift` or
+either entitlements file, so a half-finished rename fails in 10 seconds rather than 10
+minutes into a confusing signing error.
 
 ### 7. Add an app icon
 

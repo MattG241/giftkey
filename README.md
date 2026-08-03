@@ -98,16 +98,20 @@ the app, then in Xcode choose *Debug > Attach to Process by PID or Name* and ent
 
 ## Renaming / re-signing
 
-Everything is a clearly-marked placeholder. There are **five** places to change, and they
-must agree exactly:
+The project currently ships under the prefix **`com.mattgroves`**. If you fork it or move
+it to a different Apple team, these five places must all agree:
 
-| What | Where | Placeholder |
+| What | Where | Current value |
 |---|---|---|
-| Bundle ID prefix | `Shared/AppConstants.swift` → `bundleIDPrefix` | `com.PLACEHOLDER` |
-| App Group | `Shared/AppConstants.swift` → `appGroupID` | `group.com.PLACEHOLDER.giftkey` |
-| App Group | `GiftKey/GiftKey.entitlements` | `group.com.PLACEHOLDER.giftkey` |
-| App Group | `GiftKeyKeyboard/GiftKeyKeyboard.entitlements` | `group.com.PLACEHOLDER.giftkey` |
-| Team + bundle IDs | `project.yml`, and the target build settings if you are not using XcodeGen | `PLACEHOLDERTEAMID`, `com.PLACEHOLDER.giftkey` |
+| Bundle ID prefix | `Shared/AppConstants.swift` → `bundleIDPrefix` | `com.mattgroves` |
+| App Group | `Shared/AppConstants.swift` → `appGroupID` | `group.com.mattgroves.giftkey` |
+| App Group | `GiftKey/GiftKey.entitlements` | `group.com.mattgroves.giftkey` |
+| App Group | `GiftKeyKeyboard/GiftKeyKeyboard.entitlements` | `group.com.mattgroves.giftkey` |
+| Bundle IDs | `project.yml`, `codemagic.yaml`, and the target build settings | `com.mattgroves.giftkey`, `com.mattgroves.giftkey.keyboard` |
+
+`DEVELOPMENT_TEAM` is deliberately left as `PLACEHOLDERTEAMID` in the checked-in project.
+Codemagic rewrites it during the build via `xcode-project use-profiles`, so it only needs
+a real value if you build locally in Xcode.
 
 Also update `CFBundleURLName` in `GiftKey/Info.plist` if you care about it being tidy
 (the *scheme* itself, `giftkey`, does not need to change).

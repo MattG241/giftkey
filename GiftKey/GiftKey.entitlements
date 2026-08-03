@@ -2,11 +2,11 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<!-- PLACEHOLDER: must match AppConstants.appGroupID and the keyboard target's
-	     entitlements exactly, and must be registered on the developer portal. -->
+	<!-- Must match AppConstants.appGroupID and the keyboard target's entitlements
+	     exactly, and must be enabled on this App ID on the developer portal. -->
 	<key>com.apple.security.application-groups</key>
 	<array>
-		<string>group.com.PLACEHOLDER.giftkey</string>
+		<string>group.com.mattgroves.giftkey</string>
 	</array>
 </dict>
 </plist>
