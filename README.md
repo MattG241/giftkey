@@ -109,9 +109,9 @@ it to a different Apple team, these five places must all agree:
 | App Group | `GiftKeyKeyboard/GiftKeyKeyboard.entitlements` | `group.com.mattgroves.giftkey` |
 | Bundle IDs | `project.yml`, `codemagic.yaml`, and the target build settings | `com.mattgroves.giftkey`, `com.mattgroves.giftkey.keyboard` |
 
-`DEVELOPMENT_TEAM` is deliberately left as `PLACEHOLDERTEAMID` in the checked-in project.
-Codemagic rewrites it during the build via `xcode-project use-profiles`, so it only needs
-a real value if you build locally in Xcode.
+`DEVELOPMENT_TEAM` is set to `DNS7GY854U`. Codemagic overwrites it during the build via
+`xcode-project use-profiles`, so it only matters for local Xcode builds.
+
 
 Also update `CFBundleURLName` in `GiftKey/Info.plist` if you care about it being tidy
 (the *scheme* itself, `giftkey`, does not need to change).

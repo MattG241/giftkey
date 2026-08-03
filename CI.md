@@ -114,8 +114,8 @@ Identifiers are already set throughout to the `com.mattgroves` prefix:
 - `GiftKey/Info.plist` — `CFBundleURLName`
 - `project.yml`, `GiftKey.xcodeproj` — `PRODUCT_BUNDLE_IDENTIFIER` on both targets
 
-`DEVELOPMENT_TEAM` is intentionally still `PLACEHOLDERTEAMID` — `xcode-project
-use-profiles` rewrites it during the build. It only matters if you build locally in Xcode.
+`DEVELOPMENT_TEAM` is set to the real Team ID `DNS7GY854U`. `xcode-project
+use-profiles` overwrites it at build time regardless, so it only matters locally.
 
 The release workflow refuses to run if `PLACEHOLDER` reappears in `AppConstants.swift` or
 either entitlements file, so a half-finished rename fails in 10 seconds rather than 10
