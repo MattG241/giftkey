@@ -25,6 +25,7 @@ There is no networking code in either target, so the App Store privacy label is
 - [Adding a validation preset](#adding-a-validation-preset)
 - [Memory budget](#memory-budget-read-before-touching-the-keyboard-target)
 - [App Store submission](#app-store-submission)
+- [Demo codes for App Review](#demo-codes-for-app-review)
 - [App Store metadata (draft)](#app-store-metadata-draft)
 - [Known limitations](#known-limitations)
 
@@ -268,7 +269,8 @@ anyway; it is a two-line page and it heads off questions.
 >
 > **To test:** install, add the GiftKey keyboard, enable Allow Full Access, open Notes,
 > switch to GiftKey and tap Scan. Any barcode works — a product barcode on any packaging
-> is fine. The in-app "Scan" tab also works standalone without the keyboard.
+> is fine, and a sheet of demo codes is attached (`giftkey-demo-codes.png`) for scanning
+> off a screen. The in-app "Scan" tab also works standalone without the keyboard.
 >
 > The keyboard degrades gracefully: with Full Access off it displays instructions rather
 > than failing, and remains usable as a basic keyboard (globe, delete, return).
@@ -277,6 +279,35 @@ anyway; it is a two-line page and it heads off questions.
 
 **Utilities.** (Business is a defensible second choice, but Utilities matches how people
 search for this.)
+
+## Demo codes for App Review
+
+Review asks for these under **Guideline 2.1(a) — "we need a demo QR code or AR marker
+(image) to fully assess the app features"**. A scanner app cannot be assessed without
+something to scan, and a reviewer at a desk has no gift card to hand.
+
+```bash
+pip install pillow segno zxing-cpp
+python tools/make_demo_barcodes.py --verify
+```
+
+That writes `docs/review/` — a one-page sheet of four codes plus one PNG per code:
+
+| Code | Value | What it demonstrates |
+|---|---|---|
+| Code 128 | `6034551234567890` | The main case: a 16-digit gift card, accepted by the "Gift card (8-20 digits)" filter |
+| Code 128 | `90210457` | The short end of the same filter |
+| EAN-13 | `9310072011691` | Strip check digit and UPC/EAN conversion |
+| QR | `GIFTKEY-DEMO-QR` | The rejection path: non-numeric, so the filter refuses it and the keyboard shakes |
+
+`--verify` decodes the written PNGs back with zxing-cpp — an independent decoder, so an
+error in the symbology tables fails the run instead of shipping an image that will not
+scan. The codes are generated from the specs; they are not live card numbers and reach
+nothing.
+
+Attach `docs/review/giftkey-demo-codes.png` to the Resolution Center reply and paste the
+notes from [`docs/review/README.md`](docs/review/README.md) into **App Review Information
+› Notes**.
 
 ## App Store metadata (draft)
 
