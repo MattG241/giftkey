@@ -35,3 +35,7 @@ AuthKey_*.p8
 ## Fastlane
 fastlane/report.xml
 fastlane/screenshots
+
+## Python tooling
+__pycache__/
+*.pyc
